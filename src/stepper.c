@@ -28,6 +28,7 @@ double current_step_period;
 int ramp_interval; // measures the amount of steps during ramp up, to be able to start ramp down with that many steps left
 double steps_start_time;
 bool step_done;
+float a; //steps/s^2
 
 void stepper_init_pins() {
     // Currently only supports one stepper motor
@@ -53,14 +54,15 @@ void stepper_init_timer() {
 }
 // potential free_timer function
 
-void stepper_steps(bool cw, int steps) {
+void stepper_steps(bool cw, int steps, float accel) {
     // set globals
     clockwise = cw;
     steps_total = steps;
     current_step = 0;
     ramp_interval = 0;
-    alpha = pow(min_step_period / max_step_period, 1.0/transition_time);
-    steps_start_time = ((double)(timer0_hw->timerawl))/1000000.0;
+    a = accel;
+    // alpha = pow(min_step_period / max_step_period, 1.0/transition_time);
+    // steps_start_time = ((double)(timer0_hw->timerawl))/1000000.0;
     current_step_period = max_step_period;
     // set timer (s)
     timer0_hw->alarm[0] = (((timer0_hw->timerawl)) + 1000000.0 * current_step_period); 
@@ -86,11 +88,13 @@ void stepper_isr() {
         if (current_step == (steps_total - ramp_interval) + 1) {
             steps_start_time = (double)(timer0_hw->timerawl)/1000000.0;
         }
-        current_step_period = min_step_period * pow(alpha, -(((double)(timer0_hw->timerawl))/1000000.0 - steps_start_time));
+        current_step_period = 1.0 / ( 1.0 / current_step_period - a * (((double)(timer0_hw->timerawl))/1000000.0 - steps_start_time));
     } else if (current_step_period > min_step_period) {
         // ramp up (decreasing period)
-        current_step_period = max_step_period * pow(alpha, (((double)(timer0_hw->timerawl))/1000000.0 - steps_start_time));
+        current_step_period = 1.0 / ( 1.0 / current_step_period + a * (((double)(timer0_hw->timerawl))/1000000.0 - steps_start_time));
         ramp_interval++;
+    } else {
+        current_step_period = min_step_period; //clamps step period
     }
 
     // set alarm time (s)
