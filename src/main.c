@@ -15,11 +15,11 @@ int main()
     // test code
     stepper_init_pins();
     stepper_init_timer();
-    stepper_steps(true, 8192); // 4096 is one revolution
+    stepper_steps(true, 512); // 4096 is one revolution
     while (!step_done) {
         tight_loop_contents();
     }
-    stepper_steps(false, 8192);
+    stepper_steps(false, 512);
 
     for(;;);
     return 0;

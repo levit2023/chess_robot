@@ -86,7 +86,7 @@ void stepper_isr() {
         if (current_step == (steps_total - ramp_interval) + 1) {
             steps_start_time = (double)(timer0_hw->timerawl)/1000000.0;
         }
-        current_step_period = min_step_period * pow(alpha, -(((double)(timer0_hw->timerawl))/1000000.0 - steps_start_time));
+        current_step_period = min_step_period * pow(alpha, -((((double)(timer0_hw->timerawl))/1000000.0 - steps_start_time) - 0.5));
     } else if (current_step_period > min_step_period) {
         // ramp up (decreasing period)
         current_step_period = max_step_period * pow(alpha, (((double)(timer0_hw->timerawl))/1000000.0 - steps_start_time));
