@@ -1,0 +1,73 @@
+.program ir_tx
+; Transmit a 38 kHz modulated IR signal (for TSOP38238 receiver)
+; OUT pin: drives transistor controlling IR LED
+; Data loaded via TX FIFO: each word = 32-bit message (MSB first)
+; Timing approximates NEC-like protocol (modulated bursts)
+
+.side_set 1 ; one side-set pin (IR LED)
+
+;constants (to be filled by assembler defines)
+.define T_CARRIER 1644    ; half-period cycles for 38kHz (125MHz clk)
+.define T_SHORT   700     ; ~0.56ms
+.define T_LONG    2100    ; ~1.68ms
+.define T_START_PULSE 11250  ; 9ms
+.define T_START_SPACE 5625   ; 4.5ms
+
+;state machine expects data pushed via TX FIFO before starting
+
+; === Entry: send start pulse ===
+start:
+    set x, T_START_PULSE [0]
+    jmp call_carrier_burst
+    set x, T_START_SPACE [0]
+    jmp call_space
+    pull block        ; get 32-bit message
+    mov y, osr        ; store message in Y
+bitloop:
+    mov x, y
+    jmp !x nextbit    ; if all bits sent
+    out null, 1       ; shift MSB -> OSR?
+    jmp send_bit
+nextbit:
+    jmp done
+
+; === send one bit ===
+send_bit:
+    out pins, 1       ; output bit to test (for debug)
+    ; decide on 0 or 1 duration
+    jmp !osre bit0
+bit1:
+    set x, T_SHORT
+    jmp call_carrier_burst
+    set x, T_LONG
+    jmp call_space
+    jmp bitloop
+bit0:
+    set x, T_SHORT
+    jmp call_carrier_burst
+    set x, T_SHORT
+    jmp call_space
+    jmp bitloop
+
+done:
+    set x, T_SHORT
+    jmp call_carrier_burst
+    nop [31]
+    jmp start ; loop waiting next message
+
+; === subroutines ===
+
+; Generate 38kHz burst for X counts (X defines burst duration)
+call_carrier_burst:
+burst_loop:
+    nop side 1 [T_CARRIER]
+    nop side 0 [T_CARRIER]
+    jmp x-- burst_loop
+    ret
+
+;space (LED off) for X counts
+call_space:
+space_loop:
+    nop side 0 [31]
+    jmp x-- space_loop
+    ret
