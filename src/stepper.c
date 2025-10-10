@@ -6,17 +6,29 @@
 #include "stepper.h"
 #include <math.h>
 
+// Pin definitions
+#define RIGHT_COIL1 25
+#define RIGHT_COIL2 26
+#define RIGHT_COIL3 27
+#define RIGHT_COIL4 28
+#define LEFT_COIL1 29
+#define LEFT_COIL2 30
+#define LEFT_COIL3 31
+#define LEFT_COIL4 21
+
 // Every time is in seconds
 
 // All 8 stepper steps according to
 // https://www.rajguruelectronics.com/Product/1467/28BYJ-48%20-%205V%20Stepper%20Motor.pdf
-// Each step is 4 bits
+// Each step is 4 bits (Coil 4 at MSB)
 // Clockwise rotation starts at E (step 1) and travels left along stepper_map
 const uint32_t stepper_map = 0x673B9DCE;
 
-int step_idx = 0; // indexes through stepper_map
+int right_step_idx = 0; // indexes through stepper_map
+int left_step_idx = 0;
 
-bool clockwise;
+bool right_forward;
+bool left_forward;
 uint32_t steps_total;
 uint32_t current_step;
 
@@ -29,20 +41,26 @@ int ramp_interval; // measures the amount of steps during ramp up, to be able to
 double steps_start_time;
 bool step_done;
 
+uint64_t right_mask = 0;
+uint64_t left_mask = 0;
+
 void stepper_init_pins() {
-    // Currently only supports one stepper motor
+    right_mask |= 1 << RIGHT_COIL1;
+    right_mask |= 1 << RIGHT_COIL2;
+    right_mask |= 1 << RIGHT_COIL3;
+    right_mask |= 1 << RIGHT_COIL4;
+    left_mask  |= 1 << LEFT_COIL1;
+    left_mask  |= 1 << LEFT_COIL2;
+    left_mask  |= 1 << LEFT_COIL3;
+    left_mask  |= 1 << LEFT_COIL4;
 
-    // coils | gpio_set_dir (outputs) | 25-28
-    sio_hw->gpio_oe_set |= 0xf << 25;
+    gpio_set_dir_out_masked64(right_mask);
+    gpio_set_function_masked64(right_mask, GPIO_FUNC_SIO);
+    gpio_clr_mask64(right_mask);
 
-    // gpio_set_function
-    for (int pin=25; pin<=28; pin++) {
-        io_bank0_hw->io[pin].ctrl = 5;
-        pads_bank0_hw->io[pin] = 0x40;
-    }
-
-    // clear pins
-    sio_hw->gpio_out &= ~(0xf << 25);
+    gpio_set_dir_out_masked64(left_mask);
+    gpio_set_function_masked64(left_mask, GPIO_FUNC_SIO);
+    gpio_clr_mask64(left_mask);
 }
 
 void stepper_init_timer() {
@@ -53,9 +71,10 @@ void stepper_init_timer() {
 }
 // potential free_timer function
 
-void stepper_steps(bool cw, int steps) {
+void stepper_steps(bool left_fw, bool right_fw, int steps) {
     // set globals
-    clockwise = cw;
+    right_forward = right_fw;
+    left_forward = left_fw;
     steps_total = steps;
     current_step = 0;
     ramp_interval = 0;
@@ -72,13 +91,29 @@ void stepper_isr() {
     hw_clear_bits(&timer0_hw->intr, 1u << 0);
 
     // step motor by 1 step
-    if (clockwise) {
-        step_idx = (step_idx + 1) % 8;
+    if (right_forward) {
+        // right_fw is clockwise
+        right_step_idx = (right_step_idx + 1) % 8;
     } else {
-        step_idx = (step_idx - 1 + 8) % 8;
+        right_step_idx = (right_step_idx - 1 + 8) % 8;
     }
-    sio_hw->gpio_out &= ~(0xf << 25);
-    sio_hw->gpio_out |= ((stepper_map >> (4*step_idx)) & 0xf) << 25;
+    if (left_forward) {
+        // left_fw is counterclockwise
+        left_step_idx = (left_step_idx - 1 + 8) % 8;
+    } else {
+        left_step_idx = (left_step_idx + 1) % 8;
+    }
+    gpio_clr_mask64(right_mask);
+    gpio_clr_mask64(left_mask);
+    gpio_set_mask64(((stepper_map >> (4*right_step_idx)) & 0x1) << RIGHT_COIL4);
+    gpio_set_mask64(((stepper_map >> (4*right_step_idx)) & 0x2) << (RIGHT_COIL3 - 1));
+    gpio_set_mask64(((stepper_map >> (4*right_step_idx)) & 0x4) << (RIGHT_COIL2 - 2));
+    gpio_set_mask64(((stepper_map >> (4*right_step_idx)) & 0x8) << (RIGHT_COIL1 - 3));
+    gpio_set_mask64(((stepper_map >> (4*left_step_idx)) & 0x1) << LEFT_COIL4);
+    gpio_set_mask64(((stepper_map >> (4*left_step_idx)) & 0x2) << (LEFT_COIL3 - 1));
+    gpio_set_mask64(((stepper_map >> (4*left_step_idx)) & 0x4) << (LEFT_COIL2 - 2));
+    gpio_set_mask64(((stepper_map >> (4*left_step_idx)) & 0x8) << (LEFT_COIL1 - 3));
+
 
     // determine step_period (s)
     if (current_step > (steps_total - ramp_interval)) {
