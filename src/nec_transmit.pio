@@ -15,7 +15,7 @@ long_burst:
     jmp X-- long_burst
 
     nop [15] ; In nec protocal after a 9ms leading pulse a 4.5ms gap is used
-    irq BURST_IRQ [1] ; Send a gap of 562.5us
+    irq BURST_IRQ; Send a burst of 562us done in nec_carrier
 
 send_data:
     out X, 1 ; Shift one bit MSB first. Subject to chage
