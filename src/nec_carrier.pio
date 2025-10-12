@@ -17,7 +17,7 @@ start:
 send_mod:
     set pins, 0
     set pins, 1
-    jmp X--, send_mod    ; clk of statemachine needs to be 76000 for this configuration
+    jmp X--, send_mod    ; clk of statemachine needs to be 152000 for this configuration
 
 .wrap
 
