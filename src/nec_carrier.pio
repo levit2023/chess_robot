@@ -1,0 +1,22 @@
+; Generates a modulated 38kHz signal
+
+.program nec_carrier
+
+.define T_CYCLE 22 ; For a modulation of 38kHz, 22 cycles are needed to generated the 562.5us
+.define BURST_IRQ 4 ; Same as transmit IRQ_NUM
+
+.wrap_target
+
+start:
+    set X, (T_CYCLE - 1) ; Set up the counter to generated modulated signal
+
+    wait 1 irq BURST_IRQ ; Wait for an interrupt then ackowlege int
+
+    jmp send_mod
+
+send_mod:
+    set PINS, 0
+    set PINS, 1
+    jmp X--, send_mod    ; clk of statemachine needs to be 76000 for this configuration
+
+.wrap
