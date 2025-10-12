@@ -15,8 +15,21 @@ start:
     jmp send_mod
 
 send_mod:
-    set PINS, 0
-    set PINS, 1
+    set pins, 0
+    set pins, 1
     jmp X--, send_mod    ; clk of statemachine needs to be 76000 for this configuration
 
 .wrap
+
+% c-sdk{
+    static inline void nec_carrier_program_init(PIO pio, uint sm, uint offset, float clkDiv, uint pin){
+
+        pio_sm_config = nec_carrier_program_get_default_config(offset);
+        sm_config_set_set_pins(&c, pin, 1);
+        pio_gpio_init(pio, pin);
+        pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+        sm_config_set_clkdiv(&c, clkdiv);
+        pio_sm_init(pio, sm, offset, &c);
+        pio_sm_set_enabled(pio, sm, true);
+    }
+%}
