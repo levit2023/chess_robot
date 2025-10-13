@@ -7,12 +7,9 @@
 
 .wrap_target
 
-start:
     set X, (T_CYCLE - 1) ; Set up the counter to generated modulated signal
 
     wait 1 irq BURST_IRQ ; Wait for an interrupt then ackowlege int
-
-    jmp send_mod
 
 send_mod:
     set pins, 0
