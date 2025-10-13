@@ -33,8 +33,8 @@ jmp !OSRE send_data ; Keep sending until output shift register is empty
 % c-sdk{
     static inline void nec_transmit_program_init(PIO pio, uint sm, uint offset, float tick_rate, int bits_per_frame){
 
-        pio_sm_config = nec_transmit_program_get_default_config(offset);
-        sm_config_set_out_shift(&c, false, false, bits_per_frame);
+        pio_sm_config c = nec_transmit_program_get_default_config(offset);
+        sm_config_set_out_shift(&c, true, false, bits_per_frame);
         sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
         float clkdiv = clock_get_hz (clk_sys)  / tick_rate;
         sm_config_set_clkdiv(&c, clkdiv);

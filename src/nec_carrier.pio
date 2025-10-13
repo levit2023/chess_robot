@@ -24,7 +24,7 @@ send_mod:
 % c-sdk{
     static inline void nec_carrier_program_init(PIO pio, uint sm, uint offset, float clkDiv, uint pin){
 
-        pio_sm_config = nec_carrier_program_get_default_config(offset);
+        pio_sm_config c = nec_carrier_program_get_default_config(offset);
         sm_config_set_set_pins(&c, pin, 1);
         pio_gpio_init(pio, pin);
         pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
