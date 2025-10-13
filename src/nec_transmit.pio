@@ -2,8 +2,8 @@
 
 .program nec_transmit
 
-.define BURST_IRQ 4 ; Indicates that one of the state machine's TXN is full
-.define NUM_INITIAL_BURST 16
+.define BURST_IRQ 4 ; Interrupt number
+.define NUM_INITIAL_BURST 15
 
 .wrap_target ; Start of state machine
     pull
@@ -19,8 +19,8 @@ long_burst:
 
 send_data:
     out X, 1 ; Shift one bit MSB first. Subject to chage
-    jmp !X burst ; If x is zero short low state
-    nop [3] ; Not 0 must be 1 thus send a longer low state
+    jmp !X burst [1]; If x is zero short low state
+    nop [2] ; Not 0 must be 1 thus send a longer low state
 
 burst:
     irq BURST_IRQ

@@ -6,7 +6,6 @@
 
 #if !PICO_NO_HARDWARE
 #include "hardware/pio.h"
-#include "hardware/clocks.h"
 #endif
 
 // ----------- //
@@ -71,7 +70,7 @@ static inline void nec_receive_program_init (PIO pio, uint sm, uint offset, uint
     sm_config_set_jmp_pin (&c, pin);
     // Set the clock divider to 10 ticks per 562.5us burst period
     //
-    float div = clock_get_hz (clk_sys) / (10.0 / 562.5e-6);
+    float div = clock_get_hz (clk_sys) / (10.0 / 562e-6);
     sm_config_set_clkdiv (&c, div);
     // Apply the configuration to the state machine
     //

@@ -2,14 +2,14 @@
 
 .program nec_carrier
 
-.define T_CYCLE 22 ; For a modulation of 38kHz, 22 cycles are needed to generated the 562.5us
+.define T_CYCLE 21 ; For a modulation of 38kHz, 22 cycles are needed to generated the 562.5us
 .define BURST_IRQ 4 ; Same as transmit IRQ_NUM
 
 .wrap_target
 
     set X, (T_CYCLE - 1) ; Set up the counter to generated modulated signal
 
-    wait 1 irq BURST_IRQ ; Wait for an interrupt then ackowlege int
+    wait 1 irq BURST_IRQ ; Wait for an interrupt then ackowlege it
 
 send_mod:
     set pins, 0
@@ -25,7 +25,7 @@ send_mod:
         sm_config_set_set_pins(&c, pin, 1);
         pio_gpio_init(pio, pin);
         pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
-        sm_config_set_clkdiv(&c, clkdiv);
+        sm_config_set_clkdiv(&c, clkDiv);
         pio_sm_init(pio, sm, offset, &c);
         pio_sm_set_enabled(pio, sm, true);
     }

@@ -6,7 +6,6 @@
 
 #if !PICO_NO_HARDWARE
 #include "hardware/pio.h"
-#include "hardware/clocks.h"
 #endif
 
 // ------------ //
@@ -19,14 +18,14 @@
 static const uint16_t nec_transmit_program_instructions[] = {
             //     .wrap_target
     0x80a0, //  0: pull   block                      
-    0xe02f, //  1: set    x, 15                      
+    0xe02e, //  1: set    x, 14                      
     0xc004, //  2: irq    nowait 4                   
     0x0042, //  3: jmp    x--, 2                     
     0xaf42, //  4: nop                           [15]
     0xc004, //  5: irq    nowait 4                   
     0x6021, //  6: out    x, 1                       
-    0x0029, //  7: jmp    !x, 9                      
-    0xa342, //  8: nop                           [3] 
+    0x0129, //  7: jmp    !x, 9                  [1] 
+    0xa242, //  8: nop                           [2] 
     0xc004, //  9: irq    nowait 4                   
     0x00e6, // 10: jmp    !osre, 6                   
             //     .wrap
@@ -47,7 +46,7 @@ static inline pio_sm_config nec_transmit_program_get_default_config(uint offset)
 
     static inline void nec_transmit_program_init(PIO pio, uint sm, uint offset, float tick_rate, int bits_per_frame){
         pio_sm_config c = nec_transmit_program_get_default_config(offset);
-        sm_config_set_out_shift(&c, false, false, bits_per_frame);
+        sm_config_set_out_shift(&c, true, false, bits_per_frame);
         sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
         float clkdiv = clock_get_hz (clk_sys)  / tick_rate;
         sm_config_set_clkdiv(&c, clkdiv);

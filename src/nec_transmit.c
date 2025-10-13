@@ -41,7 +41,7 @@ int nec_tx_init(PIO pio, uint pin_num) {
     nec_carrier_program_init(pio,
                                    carrier_burst_sm,
                                    carrier_burst_offset,
-                                   986.842f,
+                                   1315.789474f,
                                    pin_num);                   // 38.222 kHz carrier
 
     // install the carrier_control program in the PIO shared instruction space

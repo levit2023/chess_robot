@@ -37,7 +37,7 @@ burst_loop:
     jmp next_burst                              ; wait for the first data bit
 
 data_bit:
-    nop [ BIT_SAMPLE_DELAY - 1 ]                ; wait for 1.5 burst periods before sampling the bit value
+    nop [BIT_SAMPLE_DELAY - 1]                ; wait for 1.5 burst periods before sampling the bit value
     in PINS, 1                                  ; if the next burst has started then detect a '0' (short gap)
                                                 ; otherwise detect a '1' (long gap)
                                                 ; after 32 bits the ISR will autopush to the receive FIFO
@@ -81,7 +81,7 @@ static inline void nec_receive_program_init (PIO pio, uint sm, uint offset, uint
 
     // Set the clock divider to 10 ticks per 562.5us burst period
     //
-    float div = clock_get_hz (clk_sys) / (10.0 / 562.5e-6);
+    float div = clock_get_hz (clk_sys) / (10.0 / 562e-6);
     sm_config_set_clkdiv (&c, div);
 
     // Apply the configuration to the state machine

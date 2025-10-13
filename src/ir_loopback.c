@@ -39,7 +39,7 @@ int main() {
         // create a 32-bit frame and add it to the transmit FIFO
         uint32_t tx_frame = nec_encode_frame(tx_address, tx_data);
         pio_sm_put(pio, tx_sm, tx_frame);
-        printf("\nsent: %02x, %02x", tx_address, tx_data);
+        // printf("\nsent: %02x, %02x",6 tx_address, tx_data);
 
         // allow time for the frame to be transmitted (optional)
         sleep_ms(100);
@@ -49,13 +49,28 @@ int main() {
             uint32_t rx_frame = pio_sm_get(pio, rx_sm);
 
             if (nec_decode_frame(rx_frame, &rx_address, &rx_data)) {
-                printf("\treceived: %02x, %02x", rx_address, rx_data);
+                if (rx_address == tx_address && rx_data == tx_data) {
+                    // Successful transmission, overwrite previous successful line
+                    printf("\r\ttransmitted: %02x, %02x received: %02x, %02x      ",
+                           tx_address, tx_data, rx_address, rx_data);
+                    fflush(stdout);
+                } else {
+                    // Error lines: print normally, go to next line
+                    printf("\n\t!!!ERROR!!! transmitted: %02x, %02x received: %02x, %02x\n",
+                           tx_address, tx_data, rx_address, rx_data);
+                }
             } else {
-                printf("\treceived: %08x", rx_frame);
+                // Parity issue: print normally, go to next line
+                printf("\n\tPARITY expected: %08lx received: %08lx\n",
+                       tx_frame, rx_frame);
             }
+
         }
 
-        sleep_ms(900);
+        sleep_ms(000);
         tx_data += 1;
+        if (tx_data == 0xFF) {
+            tx_address ++;
+        }
     }
 }

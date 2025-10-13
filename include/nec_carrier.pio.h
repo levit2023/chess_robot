@@ -13,23 +13,22 @@
 // ----------- //
 
 #define nec_carrier_wrap_target 0
-#define nec_carrier_wrap 5
+#define nec_carrier_wrap 4
 
 static const uint16_t nec_carrier_program_instructions[] = {
             //     .wrap_target
-    0xe035, //  0: set    x, 21                      
+    0xe034, //  0: set    x, 20                      
     0x20c4, //  1: wait   1 irq, 4                   
-    0x0003, //  2: jmp    3                          
-    0xe000, //  3: set    pins, 0                    
-    0xe001, //  4: set    pins, 1                    
-    0x0043, //  5: jmp    x--, 3                     
+    0xe000, //  2: set    pins, 0                    
+    0xe001, //  3: set    pins, 1                    
+    0x0042, //  4: jmp    x--, 2                     
             //     .wrap
 };
 
 #if !PICO_NO_HARDWARE
 static const struct pio_program nec_carrier_program = {
     .instructions = nec_carrier_program_instructions,
-    .length = 6,
+    .length = 5,
     .origin = -1,
 };
 
