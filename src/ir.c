@@ -16,15 +16,16 @@ struct nec_config ir_init(PIO pio, int tx, int rx){ // Initialize PIO state mach
 void ir_send(PIO pio, uint32_t data, int tx_sm){
     
     pio_sm_put(pio, tx_sm, data);
-    
+    sleep_ms(100);
 
 }
 
 void ir_receive(PIO pio, int rx_sm){
-    while(!pio_sm_is_rx_fifo_empty(pio, rx_sm)){
+    while (!pio_sm_is_rx_fifo_empty(pio, rx_sm)) {
         uint32_t rx_data = pio_sm_get(pio, rx_sm);
-        if(decode_and_check(rx_data)){
-            printf("\ttransmitted: %04x\n", rx_data);
+        if (decode_and_check(rx_data)) {
+            // Successful transmission, overwrite previous successful line
+            printf("\r\ttransmitted: %02x\n", rx_data);
         }
     }
 }

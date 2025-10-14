@@ -3,10 +3,10 @@
 #include "nec_transmit.h"
 #include "nec_receive.h"
 
-struct nec_config{
+typedef struct nec_config{
     int tx_sm;
     int rx_sm;
-};
+}nec_config_t;
 
 
 struct nec_config ir_init(PIO pio, int tx, int rx);
