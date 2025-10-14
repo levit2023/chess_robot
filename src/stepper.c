@@ -4,9 +4,10 @@
 #include "hardware/timer.h"
 #include "hardware/irq.h"
 #include "stepper.h"
+#include "utils.h"
 #include <math.h>
 
-// Pin definitions
+// pin definitions
 #define RIGHT_COIL1 25
 #define RIGHT_COIL2 26
 #define RIGHT_COIL3 27
@@ -16,51 +17,47 @@
 #define LEFT_COIL3 31
 #define LEFT_COIL4 21
 
-// Every time is in seconds
-
-// All 8 stepper steps according to
+// all 8 stepper steps according to
 // https://www.rajguruelectronics.com/Product/1467/28BYJ-48%20-%205V%20Stepper%20Motor.pdf
-// Each step is 4 bits (Coil 4 at MSB)
-// Clockwise rotation starts at E (step 1) and travels left along stepper_map
-const uint32_t stepper_map = 0x673B9DCE;
+// clockwise rotation starts at 0xE (step 1) and ends at 0x6 (step 8)
+static const uint8_t stepper_sequence[8] = {0xE, 0xC, 0xD, 0x9, 0xB, 0x3, 0x7, 0x6};
 
+// each step is 4 bits (Coil 4 at MSB)
+static const uint8_t right_coil_pins[4] = {RIGHT_COIL4, RIGHT_COIL3, RIGHT_COIL2, RIGHT_COIL1};
+static const uint8_t left_coil_pins[4] = {LEFT_COIL4, LEFT_COIL3, LEFT_COIL2, LEFT_COIL1};
+
+int left_step_idx = 0; // indexes through stepper_map
 int right_step_idx = 0; // indexes through stepper_map
-int left_step_idx = 0;
 
-bool right_forward;
-bool left_forward;
-uint32_t steps_total;
-uint32_t current_step;
+bool left_forward; // true if left motor goes forward
+bool right_forward; // true if right motor goes forward
 
-double min_step_period = 700 / 1000000.0; // lowest period (s) (top speed)
-double max_step_period = 5000 / 1000000.0; // highest period (s) (min speed)
-double transition_time = 0.5; // time (s) to transition between min and max period
-double alpha; // base for exponential ramp, set by the transition time
-double current_step_period;
-int ramp_interval; // measures the amount of steps during ramp up, to be able to start ramp down with that many steps left
-double steps_start_time;
-bool step_done;
+uint32_t total_steps; // total steps in this motion
+uint32_t step_count; // steps taken so far this motion
+uint32_t ramp_steps; // measures the amount of steps during ramp up, to be able to start ramp down with that many steps left
 
-uint64_t right_mask = 0;
-uint64_t left_mask = 0;
+double current_speed = 0; // current speed (steps/s)
+double min_speed = 200; // lowest speed (steps/s)
+double max_speed = 1000; // highest speed (steps/s)
+double decel_speed_initial = 0; // initial speed (steps/s) for decel phase
+double accel = 2000; // acceleration (steps/s^2)
+
+double phase_start_time; // initial time (s) for accel/decel calculation
+
+bool stepper_idle; // low whenever movement is in progress
+
+stepper_state_t state; // accel, cruise, decel
 
 void stepper_init_pins() {
-    right_mask |= 1 << RIGHT_COIL1;
-    right_mask |= 1 << RIGHT_COIL2;
-    right_mask |= 1 << RIGHT_COIL3;
-    right_mask |= 1 << RIGHT_COIL4;
-    left_mask  |= 1 << LEFT_COIL1;
-    left_mask  |= 1 << LEFT_COIL2;
-    left_mask  |= 1 << LEFT_COIL3;
-    left_mask  |= 1 << LEFT_COIL4;
+    for (int i = 0; i < 4; i++) {
+        gpio_set_dir(right_coil_pins[i], true); // output
+        gpio_set_function(right_coil_pins[i], GPIO_FUNC_SIO);
+        gpio_put(right_coil_pins[i], false); // clear
 
-    gpio_set_dir_out_masked64(right_mask);
-    gpio_set_function_masked64(right_mask, GPIO_FUNC_SIO);
-    gpio_clr_mask64(right_mask);
-
-    gpio_set_dir_out_masked64(left_mask);
-    gpio_set_function_masked64(left_mask, GPIO_FUNC_SIO);
-    gpio_clr_mask64(left_mask);
+        gpio_set_dir(left_coil_pins[i], true); // output
+        gpio_set_function(left_coil_pins[i], GPIO_FUNC_SIO);
+        gpio_put(left_coil_pins[i], false); // clear
+    }
 }
 
 void stepper_init_timer() {
@@ -69,21 +66,21 @@ void stepper_init_timer() {
     irq_set_exclusive_handler(TIMER0_IRQ_0, stepper_isr);
     irq_set_enabled(TIMER0_IRQ_0, true);
 }
-// potential free_timer function
 
 void stepper_steps(bool left_fw, bool right_fw, int steps) {
     // set globals
-    right_forward = right_fw;
     left_forward = left_fw;
-    steps_total = steps;
-    current_step = 0;
-    ramp_interval = 0;
-    alpha = pow(min_step_period / max_step_period, 1.0/transition_time);
-    steps_start_time = ((double)(timer0_hw->timerawl))/1000000.0;
-    current_step_period = max_step_period;
-    // set timer (s)
-    timer0_hw->alarm[0] = (((timer0_hw->timerawl)) + 1000000.0 * current_step_period); 
-    step_done = 0;
+    right_forward = right_fw;
+    total_steps = steps;
+    step_count = 0;
+    ramp_steps = 0;
+    
+    phase_start_time = us_to_s(timer0_hw->timerawl);
+    stepper_idle = 0;
+    state = STEPPER_ACCEL;
+    
+    // set alarm time
+    timer0_hw->alarm[0] = s_to_us(1.0/max_speed) + timer0_hw->timerawl; 
 }
 
 void stepper_isr() {
@@ -103,36 +100,47 @@ void stepper_isr() {
     } else {
         left_step_idx = (left_step_idx + 1) % 8;
     }
-    gpio_clr_mask64(right_mask);
-    gpio_clr_mask64(left_mask);
-    gpio_set_mask64(((stepper_map >> (4*right_step_idx)) & 0x1) << RIGHT_COIL4);
-    gpio_set_mask64(((stepper_map >> (4*right_step_idx)) & 0x2) << (RIGHT_COIL3 - 1));
-    gpio_set_mask64(((stepper_map >> (4*right_step_idx)) & 0x4) << (RIGHT_COIL2 - 2));
-    gpio_set_mask64(((stepper_map >> (4*right_step_idx)) & 0x8) << (RIGHT_COIL1 - 3));
-    gpio_set_mask64(((stepper_map >> (4*left_step_idx)) & 0x1) << LEFT_COIL4);
-    gpio_set_mask64(((stepper_map >> (4*left_step_idx)) & 0x2) << (LEFT_COIL3 - 1));
-    gpio_set_mask64(((stepper_map >> (4*left_step_idx)) & 0x4) << (LEFT_COIL2 - 2));
-    gpio_set_mask64(((stepper_map >> (4*left_step_idx)) & 0x8) << (LEFT_COIL1 - 3));
-
-
-    // determine step_period (s)
-    if (current_step > (steps_total - ramp_interval)) {
-        // ramp down (increasing period)
-        if (current_step == (steps_total - ramp_interval) + 1) {
-            steps_start_time = (double)(timer0_hw->timerawl)/1000000.0;
-        }
-        current_step_period = min_step_period * pow(alpha, -((((double)(timer0_hw->timerawl))/1000000.0 - steps_start_time) - 0.5));
-    } else if (current_step_period > min_step_period) {
-        // ramp up (decreasing period)
-        current_step_period = max_step_period * pow(alpha, (((double)(timer0_hw->timerawl))/1000000.0 - steps_start_time));
-        ramp_interval++;
+    
+    // set pins according to stepper_sequence
+    for (int i = 0; i < 4; i++) {
+        gpio_put(right_coil_pins[i], (stepper_sequence[right_step_idx] >> i) & 0x1);
+        gpio_put(left_coil_pins[i], (stepper_sequence[left_step_idx] >> i) & 0x1);
     }
 
-    // set alarm time (s)
-    if (current_step < steps_total) {
-        timer0_hw->alarm[0] = 1000000.0 * current_step_period + ((timer0_hw->timerawl));
+    // state machine for accel, cruise, decel
+    switch (state) {
+        case STEPPER_ACCEL:
+            current_speed = min_speed + accel * (us_to_s(timer0_hw->timerawl) - phase_start_time);
+            if (current_speed >= max_speed) {
+                current_speed = max_speed;
+                state = STEPPER_CRUISE;
+            } else if (step_count >= (total_steps / 2.0)) {
+                // skip to decel if not enough ramp steps
+                decel_speed_initial = current_speed;
+                state = STEPPER_DECEL;
+                phase_start_time = us_to_s(timer0_hw->timerawl);
+            }
+            ramp_steps++; // count ramp_steps during accel
+            break;
+        case STEPPER_CRUISE:
+            current_speed = max_speed;
+            decel_speed_initial = current_speed;
+            if (step_count >= (total_steps - ramp_steps)) {
+                state = STEPPER_DECEL;
+                phase_start_time = us_to_s(timer0_hw->timerawl);
+            }
+            break;
+        case STEPPER_DECEL:
+            current_speed = decel_speed_initial - accel * (us_to_s(timer0_hw->timerawl) - phase_start_time);
+            if (current_speed < min_speed) current_speed = min_speed;
+    }
+
+    // set alarm time
+    if (step_count < total_steps) {
+        timer0_hw->alarm[0] = s_to_us(1.0/current_speed) + timer0_hw->timerawl;
     } else {
-        step_done = 1;
+        stepper_idle = 1;
     }
-    current_step++;
+
+    step_count++;
 }
