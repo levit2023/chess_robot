@@ -1,10 +1,5 @@
-#include <stdio.h>
-#include <string.h>
-#include "pico/stdlib.h"
-#include "hardware/timer.h"
-#include "hardware/irq.h"
-#include "movement.h"
-#include <math.h>
+#include <utils.h>
+#include <movement.h>
 
 int main()
 {
@@ -15,16 +10,14 @@ int main()
     // stepper inits
     stepper_init_pins();
     stepper_init_timer();
-    struct movement *path_addr;
-    path_addr = find_path(1, 0, 2, 0);
 
-    for (int i = 0; i < 10; i ++){
-        printf("Direction: %d, Rotations: %.2lf\n", path_addr[i].dir, path_addr[i].rot);
-        stepper_steps(path_addr[i].dir, (int)(path_addr[i].rot * 4096));
-        while (!stepper_idle) {
-            tight_loop_contents();
-        }
-    }
+    move_to(1,1);
+    move_to(2,2);
+    move_to(3,3);
+    move_to(4,4);
+    move_to(5,5);
+    move_to(6,6);
+    move_to(7,7);
 
     // // short step test
     // stepper_steps(FORWARD, 400);

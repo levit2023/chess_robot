@@ -3,9 +3,9 @@
 #include <math.h>
 #include "movement.h"
 
-double WHEEL_DIAMETER = 0.052; //wheel diameter in meters
-double WHEEL_SEPARATION = 0.08643; //wheel separation in meters
-double GRID_SIZE = 0.2; //size of a single square in meters
+#define WHEEL_DIAMETER 0.052 //wheel diameter in meters
+#define WHEEL_SEPARATION 0.08643 //wheel separation in meters
+#define GRID_SIZE 0.2 //size of a single square in meters
 
 struct movement path_array[9] = {0}; //initialize to all 0
 

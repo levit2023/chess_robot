@@ -30,4 +30,6 @@ void stepper_isr();
 
 struct movement *find_path(int pos_x, int pos_y, int set_x, int set_y);
 
+void move_to (int x, int y);
+
 #endif
