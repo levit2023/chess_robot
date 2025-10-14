@@ -1,12 +1,15 @@
-#include <movement.h>
-#include <utils.h>
+#include "movement.h"
+#include "utils.h"
 #include <stdio.h>
 
-static int x_pos = STARTING_X;
-static int y_pos = STARTING_Y;
-void move_to (int x, int y) {
+void move_init(move_state_t * state, chess_piece_t chess_piece) {
+  state->x_pos = (chess_piece >> 3) & 0x7;
+  state->y_pos = (chess_piece >> 0) & 0x7;
+}
+
+void move_to(move_state_t * state, int x, int y) {
     struct movement *path_addr;
-    path_addr = find_path(x_pos, y_pos, x, y);
+    path_addr = find_path(state->x_pos, state->y_pos, x, y);
 
     for (int i = 0; i < 10; i ++){
         printf("Direction: %d, Rotations: %.2lf\n", path_addr[i].dir, path_addr[i].rot);
@@ -15,6 +18,6 @@ void move_to (int x, int y) {
             tight_loop_contents();
         }
     }
-    x_pos = x;
-    y_pos = y;
+    state->x_pos = x;
+    state->y_pos = y;
 }
