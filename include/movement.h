@@ -2,6 +2,7 @@
 #define MOVEMENT_H
 
 #include <stdbool.h>
+#include "utils.h"
 
 typedef enum {
   STEPPER_ACCEL,
@@ -15,6 +16,12 @@ typedef enum {
   TURN_LEFT = 2,
   TURN_RIGHT = 3
 } direction_t;
+
+typedef struct move_state {
+  int x_pos;
+  int y_pos;
+} move_state_t;
+
 
 struct movement {
   direction_t dir; //direction to move in
@@ -30,6 +37,8 @@ void stepper_isr();
 
 struct movement *find_path(int pos_x, int pos_y, int set_x, int set_y);
 
-void move_to (int x, int y);
+void move_to(move_state_t * state, int x, int y);
+void move_init(move_state_t * state, chess_piece_t chess_piece);
+
 
 #endif
