@@ -139,5 +139,10 @@ void stepper_isr() {
         timer0_hw->alarm[0] = s_to_us(1.0/current_speed) + timer0_hw->timerawl;
     } else {
         stepper_idle = 1;
+        // set pins according to stepper_sequence
+        for (int i = 0; i < 4; i++) {
+            gpio_put(right_coil_pins[i], (0x0 >> i) & 0x1);
+            gpio_put(left_coil_pins[i], (0x0 >> i) & 0x1);
+        }
     }
 }

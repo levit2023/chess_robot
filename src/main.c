@@ -11,13 +11,13 @@ int main()
     stepper_init_pins();
     stepper_init_timer();
 
-    move_to(1,1);
     move_to(2,2);
-    move_to(3,3);
-    move_to(4,4);
-    move_to(5,5);
-    move_to(6,6);
-    move_to(7,7);
+    move_to(0,0);
+    move_to(2,2);
+    move_to(2,0);
+    move_to(2,2);
+    move_to(3,2);
+    move_to(0,2);
 
     // // short step test
     // stepper_steps(FORWARD, 400);
