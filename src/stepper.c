@@ -3,7 +3,7 @@
 #include "pico/stdlib.h"
 #include "hardware/timer.h"
 #include "hardware/irq.h"
-#include "stepper.h"
+#include "movement.h"
 #include "utils.h"
 #include <math.h>
 
@@ -29,8 +29,7 @@ static const uint8_t left_coil_pins[4] = {LEFT_COIL4, LEFT_COIL3, LEFT_COIL2, LE
 int left_step_idx = 0; // indexes through stepper_map
 int right_step_idx = 0; // indexes through stepper_map
 
-bool left_forward; // true if left motor goes forward
-bool right_forward; // true if right motor goes forward
+direction_t direction; // movement direction
 
 uint32_t total_steps; // total steps in this motion
 uint32_t step_count; // steps taken so far this motion
@@ -67,10 +66,9 @@ void stepper_init_timer() {
     irq_set_enabled(TIMER0_IRQ_0, true);
 }
 
-void stepper_steps(bool left_fw, bool right_fw, int steps) {
+void stepper_steps(direction_t dir, int steps) {
     // set globals
-    left_forward = left_fw;
-    right_forward = right_fw;
+    direction = dir;
     total_steps = steps;
     step_count = 0;
     ramp_steps = 0;
@@ -88,14 +86,14 @@ void stepper_isr() {
     hw_clear_bits(&timer0_hw->intr, 1u << 0);
 
     // step motor by 1 step
-    if (right_forward) {
-        // right_fw is clockwise
+    if ((direction == FORWARD) || (direction == TURN_LEFT)) {
+        // right motor forward == clockwise
         right_step_idx = (right_step_idx + 1) % 8;
     } else {
         right_step_idx = (right_step_idx - 1 + 8) % 8;
     }
-    if (left_forward) {
-        // left_fw is counterclockwise
+    if ((direction == FORWARD) || (direction == TURN_RIGHT)) {
+        // left motor forward == counterclockwise
         left_step_idx = (left_step_idx - 1 + 8) % 8;
     } else {
         left_step_idx = (left_step_idx + 1) % 8;
