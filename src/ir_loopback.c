@@ -18,67 +18,74 @@
 //
 // Output is sent to stdout
 
+uint tx_gpio = 18;
+uint rx_gpio = 30;
+PIO pio = pio0;
+
 int main() {
     stdio_init_all();
 
-    struct nec_config my_setup;
+    // struct nec_config my_setup;
 
-    my_setup = ir_init(18, 30);
-    for(int i = 0; i < 10; i++){
-        send_data(0x01010101, my_setup.tx_sm);
+    // my_setup = ir_init(pio, tx_gpio, rx_gpio);
+    // uint32_t tx = encode_data(0x00, 0x12);
+    // ir_send(pio, tx, my_setup.tx_sm);
+    // sleep_ms(100);
+    // ir_receive(pio, my_setup.rx_sm);
+
+
+
+    PIO pio = pio0;                                 // choose which PIO block to use (RP2040 has two: pio0 and pio1)
+    uint tx_gpio = 18;                              // choose which GPIO pin is connected to the IR LED
+    uint rx_gpio = 30;                              // choose which GPIO pin is connected to the IR detector
+
+    // configure and enable the state machines
+    int tx_sm = nec_tx_init(pio, tx_gpio);         // uses two state machines, 16 instructions and one IRQ
+    int rx_sm = nec_rx_init(pio, rx_gpio);         // uses one state machine and 9 instructions
+
+    if (tx_sm == -1 || rx_sm == -1) {
+        printf("could not configure PIO\n");
+        return -1;
     }
 
-    // PIO pio = pio0;                                 // choose which PIO block to use (RP2040 has two: pio0 and pio1)
-    // uint tx_gpio = 18;                              // choose which GPIO pin is connected to the IR LED
-    // uint rx_gpio = 30;                              // choose which GPIO pin is connected to the IR detector
+    // transmit and receive frames
+    uint8_t tx_address = 0x00, tx_data = 0x00, rx_address, rx_data;
+    while (true) {
+        // create a 32-bit frame and add it to the transmit FIFO
+        uint32_t tx_frame = nec_encode_frame(tx_address, tx_data);
+        pio_sm_put(pio, tx_sm, tx_frame);
+        // printf("\nsent: %02x, %02x",6 tx_address, tx_data);
 
-    // // configure and enable the state machines
-    // int tx_sm = nec_tx_init(pio, tx_gpio);         // uses two state machines, 16 instructions and one IRQ
-    // int rx_sm = nec_rx_init(pio, rx_gpio);         // uses one state machine and 9 instructions
+        // allow time for the frame to be transmitted (optional)
+        sleep_ms(100);
 
-    // if (tx_sm == -1 || rx_sm == -1) {
-    //     printf("could not configure PIO\n");
-    //     return -1;
-    // }
+        // display any frames in the receive FIFO
+        while (!pio_sm_is_rx_fifo_empty(pio, rx_sm)) {
+            uint32_t rx_frame = pio_sm_get(pio, rx_sm);
 
-    // // transmit and receive frames
-    // uint8_t tx_address = 0x00, tx_data = 0x00, rx_address, rx_data;
-    // while (true) {
-    //     // create a 32-bit frame and add it to the transmit FIFO
-    //     uint32_t tx_frame = nec_encode_frame(tx_address, tx_data);
-    //     pio_sm_put(pio, tx_sm, tx_frame);
-    //     // printf("\nsent: %02x, %02x",6 tx_address, tx_data);
+            if (nec_decode_frame(rx_frame, &rx_address, &rx_data)) {
+                if (rx_address == tx_address && rx_data == tx_data) {
+                    // Successful transmission, overwrite previous successful line
+                    printf("\r\ttransmitted: %02x, %02x received: %02x, %02x      ",
+                           tx_address, tx_data, rx_address, rx_data);
+                    fflush(stdout);
+                } else {
+                    // Error lines: print normally, go to next line
+                    printf("\n\t!!!ERROR!!! transmitted: %02x, %02x received: %02x, %02x\n",
+                           tx_address, tx_data, rx_address, rx_data);
+                }
+            } else {
+                // Parity issue: print normally, go to next line
+                printf("\n\tPARITY expected: %08lx received: %08lx\n",
+                       tx_frame, rx_frame);
+            }
 
-    //     // allow time for the frame to be transmitted (optional)
-    //     sleep_ms(100);
+        }
 
-    //     // display any frames in the receive FIFO
-    //     while (!pio_sm_is_rx_fifo_empty(pio, rx_sm)) {
-    //         uint32_t rx_frame = pio_sm_get(pio, rx_sm);
-
-    //         if (nec_decode_frame(rx_frame, &rx_address, &rx_data)) {
-    //             if (rx_address == tx_address && rx_data == tx_data) {
-    //                 // Successful transmission, overwrite previous successful line
-    //                 printf("\r\ttransmitted: %02x, %02x received: %02x, %02x      ",
-    //                        tx_address, tx_data, rx_address, rx_data);
-    //                 fflush(stdout);
-    //             } else {
-    //                 // Error lines: print normally, go to next line
-    //                 printf("\n\t!!!ERROR!!! transmitted: %02x, %02x received: %02x, %02x\n",
-    //                        tx_address, tx_data, rx_address, rx_data);
-    //             }
-    //         } else {
-    //             // Parity issue: print normally, go to next line
-    //             printf("\n\tPARITY expected: %08lx received: %08lx\n",
-    //                    tx_frame, rx_frame);
-    //         }
-
-    //     }
-
-    //     sleep_ms(000);
-    //     tx_data += 1;
-    //     if (tx_data == 0xFF) {
-    //         tx_address ++;
-    //     }
-    // }
+        sleep_ms(000);
+        tx_data += 1;
+        if (tx_data == 0xFF) {
+            tx_address ++;
+        }
+    }
 }

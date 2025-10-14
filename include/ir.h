@@ -9,8 +9,8 @@ struct nec_config{
 };
 
 
-struct nec_config ir_init();
-void send_data(uint32_t data, int tx_sm);
-void recieve_data(uint32_t data, int tx_sm);
+struct nec_config ir_init(PIO pio, int tx, int rx);
+void ir_send(PIO pio, uint32_t data, int tx_sm);
+void ir_receive(PIO pio, int rx_sm);
 bool decode_and_check(uint32_t data);
 uint32_t encode_data(uint8_t ident, uint8_t move);
