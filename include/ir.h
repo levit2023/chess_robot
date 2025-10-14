@@ -8,9 +8,18 @@ typedef struct nec_config{
     int rx_sm;
 }nec_config_t;
 
+typedef struct ir_data{
+    uint8_t piece;
+    uint8_t move_x;
+    uint8_t move_y;
+    bool data_valid;
+} ir_data_t;
+
 
 struct nec_config ir_init(PIO pio, int tx, int rx);
 void ir_send(PIO pio, uint32_t data, int tx_sm);
-void ir_receive(PIO pio, int rx_sm);
-bool decode_and_check(uint32_t data);
+uint32_t ir_receive(PIO pio, int rx_sm);
+ir_data_t *decode_and_check(uint32_t data, ir_data_t *);
 uint32_t encode_data(uint8_t ident, uint8_t move);
+void data_send();
+void data_recieve(ir_data_t *);
