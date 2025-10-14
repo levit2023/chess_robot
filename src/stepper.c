@@ -37,9 +37,9 @@ uint32_t ramp_steps; // measures the amount of steps during ramp up, to be able 
 
 double current_speed = 0; // current speed (steps/s)
 double min_speed = 200; // lowest speed (steps/s)
-double max_speed = 1000; // highest speed (steps/s)
+double max_speed = 1500; // highest speed (steps/s)
 double decel_speed_initial = 0; // initial speed (steps/s) for decel phase
-double accel = 2000; // acceleration (steps/s^2)
+double accel = 1000; // acceleration (steps/s^2)
 
 double phase_start_time; // initial time (s) for accel/decel calculation
 
@@ -104,6 +104,7 @@ void stepper_isr() {
         gpio_put(right_coil_pins[i], (stepper_sequence[right_step_idx] >> i) & 0x1);
         gpio_put(left_coil_pins[i], (stepper_sequence[left_step_idx] >> i) & 0x1);
     }
+    step_count++; //moved to here
 
     // state machine for accel, cruise, decel
     switch (state) {
@@ -139,6 +140,4 @@ void stepper_isr() {
     } else {
         stepper_idle = 1;
     }
-
-    step_count++;
 }

@@ -18,7 +18,7 @@ typedef enum {
 
 struct movement {
   direction_t dir; //direction to move in
-  int rot; //number of rotations
+  double rot; //number of rotations
 };
 
 extern bool stepper_idle;
