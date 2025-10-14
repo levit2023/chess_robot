@@ -32,7 +32,7 @@ int main()
         tight_loop_contents();
     }
 
-    stepper_steps(TURN_RIGHT, 2000);
+    stepper_steps(TURN_RIGHT, 1702);
     while (!stepper_idle) {
         tight_loop_contents();
     }
@@ -42,7 +42,7 @@ int main()
         tight_loop_contents();
     }
 
-    stepper_steps(TURN_LEFT, 2000);
+    stepper_steps(TURN_LEFT, 1702);
     while (!stepper_idle) {
         tight_loop_contents();
     }
@@ -52,7 +52,7 @@ int main()
         tight_loop_contents();
     }
 
-    stepper_steps(TURN_LEFT, 2000);
+    stepper_steps(TURN_LEFT, 1702);
     while (!stepper_idle) {
         tight_loop_contents();
     }
@@ -62,7 +62,7 @@ int main()
         tight_loop_contents();
     }
 
-    stepper_steps(TURN_RIGHT, 2000);
+    stepper_steps(TURN_RIGHT, 1702);
     while (!stepper_idle) {
         tight_loop_contents();
     }
