@@ -104,6 +104,6 @@ void data_send(){
 void data_recieve(ir_data_t * move_data){
     int rx_sm = nec_rx_init(pio, rx_gpio); 
     uint32_t rx_data = ir_receive(pio, rx_sm);
-    decode_and_check(rx_data, &move_data);
+    decode_and_check(rx_data, move_data);
 }
 
