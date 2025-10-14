@@ -68,7 +68,7 @@ int main() {
                     // Successful transmission, overwrite previous successful line
                     printf("\r\ttransmitted: %02x, %02x received: %02x, %02x      ",
                            tx_address, tx_data, rx_address, rx_data);
-                    fflush(stdout);
+                    //fflush(stdout);
                 } else {
                     // Error lines: print normally, go to next line
                     printf("\n\t!!!ERROR!!! transmitted: %02x, %02x received: %02x, %02x\n",
