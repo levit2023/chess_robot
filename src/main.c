@@ -8,9 +8,15 @@ int main()
     move_state_t ms;
     chess_piece_t piece = W_KNIGHT_B; //starting position
     move_init(&ms, piece);
-    // Configures our microcontroller to 
-    // communicate over UART through the TX/RX pins
-    stdio_init_all();
+
+    // // Configures our microcontroller to 
+    // // communicate over UART through the TX/RX pins
+    // stdio_init_all();
+
+    // Configures our microcontroller to
+    // communicate UART-over-USB
+    // (for flashing without debugger)
+    stdio_usb_init();
 
     // stepper inits
     stepper_init_pins();

@@ -8,14 +8,18 @@
 #include <math.h>
 
 // pin definitions
-#define RIGHT_COIL1 25
-#define RIGHT_COIL2 26
-#define RIGHT_COIL3 27
-#define RIGHT_COIL4 28
-#define LEFT_COIL1 29
-#define LEFT_COIL2 30
-#define LEFT_COIL3 31
-#define LEFT_COIL4 21
+
+// motor A (left) coils
+#define LEFT_COIL1 4
+#define LEFT_COIL2 3
+#define LEFT_COIL3 2
+#define LEFT_COIL4 0
+
+// motor B (right) coils
+#define RIGHT_COIL1 11
+#define RIGHT_COIL2 7
+#define RIGHT_COIL3 6
+#define RIGHT_COIL4 5
 
 // all 8 stepper steps according to
 // https://www.rajguruelectronics.com/Product/1467/28BYJ-48%20-%205V%20Stepper%20Motor.pdf
