@@ -24,17 +24,21 @@ int main()
     while(true){
         rx_data = data_recieve(rx_sm, pio);
         move_data = decode_and_check(rx_data);
-        if(move_data.data_valid){
-            if(move_data.piece == 0x08){
-                printf("\r\tRecieved: %02x", move_data.piece);
-                fflush(stdout);
-            }
-            else{
-                printf("\r\tPass Parity Error\n: %02x", move_data.piece);
-            }
+        if(move_data.piece == piece && move_data.data_valid){
+            move_to(&ms, move_data.move_x, move_data.move_y);
         }
+        // if(move_data.data_valid){
+        //     if(move_data.piece == 0x08){
+        //         printf("\r\tRecieved: %02x", move_data.piece);
+        //         fflush(stdout);
+        //     }
+        //     else{
+        //         printf("\r\tPass Parity Error\n: %02x", move_data.piece);
+        //     }
+        // }
         sleep_ms(200);
     }
+
 
     // stepper inits
     // stepper_init_pins();
