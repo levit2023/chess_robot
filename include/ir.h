@@ -19,7 +19,7 @@ typedef struct ir_data{
 struct nec_config ir_init(PIO pio, int tx, int rx);
 void ir_send(PIO pio, uint32_t data, int tx_sm);
 uint32_t ir_receive(PIO pio, int rx_sm);
-ir_data_t *decode_and_check(uint32_t data, ir_data_t *);
+ir_data_t decode_and_check(uint32_t data);
 uint32_t encode_data(uint8_t ident, uint8_t move);
-void data_send();
-void data_recieve(ir_data_t *);
+void data_send(int tx_sm, PIO pio, uint8_t address, uint8_t move);
+uint32_t data_recieve(int rx_sm, PIO pio);
