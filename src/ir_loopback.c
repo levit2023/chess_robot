@@ -21,7 +21,7 @@
 uint tx_gpio = 18;
 uint rx_gpio = 30;
 PIO pio = pio0;
-
+/*
 int main() {
     stdio_init_all();
 
@@ -33,3 +33,4 @@ int main() {
     ir_receive(pio, my_setup.rx_sm);
 
 }
+    */

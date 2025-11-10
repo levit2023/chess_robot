@@ -5,6 +5,7 @@
 #include <string.h>
 #include <math.h>   
 #include "pieces.h"
+#include "ir.h"
 
 #define PIN_SDI    19
 #define PIN_CS     17
@@ -40,6 +41,10 @@ int pieces_taken_b = 0;
 bool en_passant = false;
 int en_pass_x;
 int en_pass_y;
+PIO pio = pio0;
+uint tx_gpio = 18;
+uint rx_gpio = 30;
+nec_config_t my_setup;
 
 
 
@@ -1042,6 +1047,10 @@ void gpio_chess_logic_isr(){
                 if(find_legal_move()){
                     int list_type = current_move ? 3 : 2;
                     move_generation = false;
+                    uint8_t current_position = (chosen_coordinates[0] & 0xF) << 4 || (chosen_coordinates[1] & 0xF);
+                    uint8_t new_position = (selected_square[0] & 0xF) << 4 || (selected_square[1] & 0xF);
+                    uint32_t packet = (current_position, new_position);
+                    ir_send(pio, packet, my_setup.tx_sm);
                     if(selected_square[0] == en_pass_x){
                         if(!current_move && selected_square[1] + 1 == en_pass_y && selected_piece == WHITE_PAWN && en_passant){
                             draw_captured(board[en_pass_y][en_pass_x], pieces_taken_w * 0.3, 8, false);

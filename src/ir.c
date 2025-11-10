@@ -52,9 +52,9 @@ bool decode_and_check(uint32_t rx_data){
     }
 }
 
-uint32_t encode_data(uint8_t ident, uint8_t move){
+uint32_t encode_data(uint8_t curr_position, uint8_t move){
 
-    return (move ^ 0xff) << 24 | move << 16 | (ident ^ 0xff) << 8 | ident;  
+    return (move ^ 0xff) << 24 | move << 16 | (curr_position ^ 0xff) << 8 | curr_position;  
 
 }
 

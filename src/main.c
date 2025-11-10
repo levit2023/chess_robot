@@ -28,26 +28,24 @@
 // // //     return 0;
 // }
 #include "pico/stdlib.h"
-#include "hardware/spi.h"
-#include "lcd.h"
 #include <stdio.h>
 #include <string.h>
 #include <math.h>   
-#include "pieces.h"
 #include "chess_logic.h"
+#include "ir.h"
+extern nec_config_t my_setup;
+PIO pio = pio0;
+uint tx_gpio = 18;
+uint rx_gpio = 30;
 
 /****************************************** */
-#define PIN_SDI    19
-#define PIN_CS     17
-#define PIN_SCK    18
-#define PIN_DC     16
-#define PIN_nRESET 15
-
 int main() {
     stdio_init_all();
     init_gpio_chess_logic();
     init_spi_lcd();
     board_setup();
+
+    my_setup = ir_init(pio, tx_gpio, rx_gpio);
 
     for(;;);
 }

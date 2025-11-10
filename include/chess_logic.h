@@ -1,6 +1,5 @@
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
-#include "pieces.h"
 
 void draw_piece(uint16_t bitmap[], int index, int x_coord, int y_coord);
 void draw_square(uint16_t drawn_piece, int board_x, int board_y, bool selected);
