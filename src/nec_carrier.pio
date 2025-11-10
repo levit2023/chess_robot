@@ -1,0 +1,32 @@
+; Generates a modulated 38kHz signal
+
+.program nec_carrier
+
+.define T_CYCLE 21 ; For a modulation of 38kHz, 22 cycles are needed to generated the 562.5us
+.define BURST_IRQ 4 ; Same as transmit IRQ_NUM
+
+.wrap_target
+
+    set X, (T_CYCLE - 1) ; Set up the counter to generated modulated signal
+
+    wait 1 irq BURST_IRQ ; Wait for an interrupt then ackowlege it
+
+send_mod:
+    set pins, 0
+    set pins, 1
+    jmp X--, send_mod    ; clk of statemachine needs to be 152000 for this configuration
+
+.wrap
+
+% c-sdk{
+    static inline void nec_carrier_program_init(PIO pio, uint sm, uint offset, float clkDiv, uint pin){
+
+        pio_sm_config c = nec_carrier_program_get_default_config(offset);
+        sm_config_set_set_pins(&c, pin, 1);
+        pio_gpio_init(pio, pin);
+        pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+        sm_config_set_clkdiv(&c, clkDiv);
+        pio_sm_init(pio, sm, offset, &c);
+        pio_sm_set_enabled(pio, sm, true);
+    }
+%}
