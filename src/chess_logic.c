@@ -1,5 +1,6 @@
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
+#include "hardware/adc.h"
 #include "lcd.h"
 #include <stdio.h>
 #include <string.h>
@@ -12,6 +13,9 @@
 #define PIN_SCK    18
 #define PIN_DC     16
 #define PIN_nRESET 15
+
+#define PIN_ADC0 26
+#define PIN_ADC1 27
 
 uint16_t selected_piece;
 uint16_t old_piece;
@@ -41,10 +45,7 @@ int pieces_taken_b = 0;
 bool en_passant = false;
 int en_pass_x;
 int en_pass_y;
-PIO pio = pio0;
-uint tx_gpio = 18;
-uint rx_gpio = 30;
-nec_config_t my_setup;
+int logic_tx_sm;
 
 
 
@@ -1049,7 +1050,7 @@ void gpio_chess_logic_isr(){
                     move_generation = false;
                     uint8_t current_position = (chosen_coordinates[0] & 0xF) << 4 || (chosen_coordinates[1] & 0xF);
                     uint8_t new_position = (selected_square[0] & 0xF) << 4 || (selected_square[1] & 0xF);
-                    uint32_t packet = (current_position, new_position);
+                    uint32_t packet = encode_data(current_position, new_position);
                     ir_send(pio, packet, my_setup.tx_sm);
                     if(selected_square[0] == en_pass_x){
                         if(!current_move && selected_square[1] + 1 == en_pass_y && selected_piece == WHITE_PAWN && en_passant){
@@ -1161,8 +1162,6 @@ void gpio_chess_logic_isr(){
 
 
 void init_gpio_chess_logic() {
-    gpio_init(21);
-    gpio_init(26);
     gpio_init_mask(0x1F << 9);
     gpio_add_raw_irq_handler_masked(0x1F<<9, gpio_chess_logic_isr);
     gpio_set_irq_enabled(9, GPIO_IRQ_LEVEL_HIGH, true);
@@ -1173,7 +1172,16 @@ void init_gpio_chess_logic() {
     irq_set_enabled(IO_IRQ_BANK0, true);
 }
 
-void board_setup(){
+void init_adc_chess_logic() {
+    //rough prototype code for now, more refined code later
+    adc_gpio_init(PIN_ADC0);
+    adc_fifo_setup(true, false, 500, false, false);
+    adc_irq_set_enabled(true);
+    adc_gpio_init(PIN_ADC1);
+
+}
+
+void board_setup(int tx_sm){
     LCD_Setup();
     LCD_Clear(0x0000); // Clear the screen to black
     
@@ -1206,4 +1214,5 @@ void board_setup(){
     selected_piece = board[selected_square[1]][selected_square[0]];
     draw_board(board);
     draw_square(board[7][4], 4, 7, true);
+    logic_tx_sm = tx_sm;
 }

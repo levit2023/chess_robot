@@ -17,5 +17,7 @@ void init_spi_lcd();
 bool stalemate();
 bool checkmate();
 void gpio_chess_logic_isr();
+void adc_chess_logic_isr();
 void init_gpio_chess_logic();
+void init_adc_chess_logic();
 void board_setup();
