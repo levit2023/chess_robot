@@ -16,7 +16,7 @@ struct nec_config ir_init(PIO pio, int tx, int rx){ // Initialize PIO state mach
 void ir_send(PIO pio, uint32_t data, int tx_sm){
     
     pio_sm_put(pio, tx_sm, data);
-    sleep_ms(100);
+    busy_wait_ms(100);
 
 }
 

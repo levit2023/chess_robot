@@ -1033,8 +1033,8 @@ void gpio_chess_logic_isr(){
         }
         
     }
-    else if(gpio_get_irq_event_mask(13) == GPIO_IRQ_LEVEL_HIGH){
-        gpio_acknowledge_irq(13, GPIO_IRQ_LEVEL_HIGH);
+    else if(gpio_get_irq_event_mask(13) == GPIO_IRQ_LEVEL_LOW){
+        gpio_acknowledge_irq(13, GPIO_IRQ_LEVEL_LOW);
         // if move_generation is not on, then we need to select a piece to generate moves for. 
         if((!move_generation)){
             if(selected_piece != 0){
@@ -1051,9 +1051,12 @@ void gpio_chess_logic_isr(){
                 if(find_legal_move()){
                     int list_type = current_move ? 3 : 2;
                     move_generation = false;
-                    uint8_t current_position = (chosen_coordinates[0] & 0xF) << 4 || (chosen_coordinates[1] & 0xF);
-                    uint8_t new_position = (selected_square[0] & 0xF) << 4 || (selected_square[1] & 0xF);
+                    uint8_t current_position = (chosen_coordinates[0]) << 4 | (chosen_coordinates[1]);
+                    printf("%02x\n", current_position);
+                    uint8_t new_position = (selected_square[0] & 0xF) << 4 | (selected_square[1] & 0xF);
+                    printf("%02x\n", new_position);
                     uint32_t packet = encode_data(current_position, new_position);
+                    printf("%02x\n", packet);
                     ir_send(pio, packet, logic_tx_sm);
                     if(selected_square[0] == en_pass_x){
                         if(!current_move && selected_square[1] + 1 == en_pass_y && chosen_piece == WHITE_PAWN && en_passant){
@@ -1171,7 +1174,7 @@ void init_gpio_chess_logic() {
     gpio_set_irq_enabled(10, GPIO_IRQ_LEVEL_HIGH, true);
     gpio_set_irq_enabled(11, GPIO_IRQ_LEVEL_HIGH, true);
     gpio_set_irq_enabled(12, GPIO_IRQ_LEVEL_HIGH, true);
-    gpio_set_irq_enabled(13, GPIO_IRQ_LEVEL_HIGH, true);
+    gpio_set_irq_enabled(13, GPIO_IRQ_LEVEL_LOW, true);
     irq_set_enabled(IO_IRQ_BANK0, true);
 }
 
