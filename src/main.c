@@ -34,17 +34,14 @@
 #include "chess_logic.h"
 #include "ir.h"
 // extern nec_config_t my_setup;
-PIO pio = pio0;
-uint tx_gpio = 18;
-uint rx_gpio = 30;
+
 
 /****************************************** */
 int main() {
-    int tx_sm = nec_tx_init(pio, tx_gpio);
     stdio_init_all();
     init_gpio_chess_logic();
     init_spi_lcd();
-    board_setup(tx_sm);
+    board_setup();
 
     //my_setup = ir_init(pio, tx_gpio, rx_gpio);
 

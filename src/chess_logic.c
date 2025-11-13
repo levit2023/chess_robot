@@ -46,6 +46,9 @@ bool en_passant = false;
 int en_pass_x;
 int en_pass_y;
 int logic_tx_sm;
+PIO pio = pio0;
+uint tx_gpio = 27;
+
 
 
 
@@ -1051,7 +1054,7 @@ void gpio_chess_logic_isr(){
                     uint8_t current_position = (chosen_coordinates[0] & 0xF) << 4 || (chosen_coordinates[1] & 0xF);
                     uint8_t new_position = (selected_square[0] & 0xF) << 4 || (selected_square[1] & 0xF);
                     uint32_t packet = encode_data(current_position, new_position);
-                    ir_send(pio, packet, my_setup.tx_sm);
+                    ir_send(pio, packet, logic_tx_sm);
                     if(selected_square[0] == en_pass_x){
                         if(!current_move && selected_square[1] + 1 == en_pass_y && chosen_piece == WHITE_PAWN && en_passant){
                             draw_captured(board[en_pass_y][en_pass_x], pieces_taken_w * 0.3, 8, false);
@@ -1181,9 +1184,11 @@ void init_adc_chess_logic() {
 
 }
 
-void board_setup(int tx_sm){
+void board_setup(){
     LCD_Setup();
     LCD_Clear(0x0000); // Clear the screen to black
+
+    logic_tx_sm = nec_tx_init(pio, tx_gpio);
     
     for(int i = 0; i < 8; i++){
         for(int j = 0; j < 8; j++){
@@ -1214,5 +1219,4 @@ void board_setup(int tx_sm){
     selected_piece = board[selected_square[1]][selected_square[0]];
     draw_board(board);
     draw_square(board[7][4], 4, 7, true);
-    logic_tx_sm = tx_sm;
 }
