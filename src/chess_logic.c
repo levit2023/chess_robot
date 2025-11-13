@@ -1168,24 +1168,25 @@ void gpio_chess_logic_isr(){
 
 
 void init_gpio_chess_logic() {
-    gpio_init_mask(0x1F << 9);
-    gpio_add_raw_irq_handler_masked(0x1F<<9, gpio_chess_logic_isr);
-    gpio_set_irq_enabled(9, GPIO_IRQ_LEVEL_HIGH, true);
-    gpio_set_irq_enabled(10, GPIO_IRQ_LEVEL_HIGH, true);
-    gpio_set_irq_enabled(11, GPIO_IRQ_LEVEL_HIGH, true);
-    gpio_set_irq_enabled(12, GPIO_IRQ_LEVEL_HIGH, true);
+    gpio_init(13);
+    gpio_add_raw_irq_handler(13, gpio_chess_logic_isr);
     gpio_set_irq_enabled(13, GPIO_IRQ_LEVEL_LOW, true);
     irq_set_enabled(IO_IRQ_BANK0, true);
 }
 
-void init_adc_chess_logic() {
-    //rough prototype code for now, more refined code later
-    adc_gpio_init(PIN_ADC0);
-    adc_fifo_setup(true, false, 500, false, false);
-    adc_irq_set_enabled(true);
-    adc_gpio_init(PIN_ADC1);
+void init_adc_freerun() {
+    // From SDK docs 5.1.1.
 
+    adc_init();
+
+    // initialize gpio
+    adc_gpio_init(42);
+    adc_gpio_init(43);
+
+    // start freerunning conversions
+    adc_run(true);
 }
+
 
 void board_setup(){
     LCD_Setup();
@@ -1222,4 +1223,61 @@ void board_setup(){
     selected_piece = board[selected_square[1]][selected_square[0]];
     draw_board(board);
     draw_square(board[7][4], 4, 7, true);
+
+    init_adc_freerun();
+
+    for(;;){
+        adc_select_input(2);
+        if(adc_hw->result > 4000){ //going down
+            if(selected_square[1] < 7){
+                old_coordinates[1] = selected_square[1];
+                old_coordinates[0] = selected_square[0];
+                selected_square[1]++;
+                old_piece = board[old_coordinates[1]][old_coordinates[0]];
+                draw_square(old_piece, old_coordinates[0], old_coordinates[1], false);
+                selected_piece = board[selected_square[1]][selected_square[0]];
+                draw_square(selected_piece, selected_square[0], selected_square[1], true); 
+            }
+            sleep_ms(200);
+        }
+        else if(adc_hw->result < 10){ //going up
+            if(selected_square[1] > 0){
+                old_coordinates[1] = selected_square[1];
+                old_coordinates[0] = selected_square[0];
+                selected_square[1]--;
+                old_piece = board[old_coordinates[1]][old_coordinates[0]];
+                draw_square(old_piece, old_coordinates[0], old_coordinates[1], false);
+                selected_piece = board[selected_square[1]][selected_square[0]];
+                draw_square(selected_piece, selected_square[0], selected_square[1], true); 
+            }
+            sleep_ms(200);
+        }
+        //adc_fifo_drain();
+        adc_select_input(3);
+        if(adc_hw->result > 4000){
+            if(selected_square[0] > 0){
+                old_coordinates[1] = selected_square[1];
+                old_coordinates[0] = selected_square[0];
+                selected_square[0]--;
+                old_piece = board[old_coordinates[1]][old_coordinates[0]];
+                draw_square(old_piece, old_coordinates[0], old_coordinates[1], false);
+                selected_piece = board[selected_square[1]][selected_square[0]];
+                draw_square(selected_piece, selected_square[0], selected_square[1], true); 
+            }
+            sleep_ms(200);
+        }
+        else if(adc_hw->result < 10){
+            if(selected_square[0] < 7){
+                old_coordinates[1] = selected_square[1];
+                old_coordinates[0] = selected_square[0];
+                selected_square[0]++;
+                old_piece = board[old_coordinates[1]][old_coordinates[0]];
+                draw_square(old_piece, old_coordinates[0], old_coordinates[1], false);
+                selected_piece = board[selected_square[1]][selected_square[0]];
+                draw_square(selected_piece, selected_square[0], selected_square[1], true); 
+            }
+            sleep_ms(200);
+        } 
+        //adc_fifo_drain();
+    }
 }
