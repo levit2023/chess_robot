@@ -36,19 +36,23 @@ uint32_t ir_receive(PIO pio, int rx_sm){
 
 ir_data_t decode_and_check(uint32_t rx_data){
     ir_data_t data;
-    union {
-        uint32_t raw;
-        struct {
-            uint8_t ident;
-            uint8_t inverted_ident;
-            uint8_t move;
-            uint8_t inverted_move;
-        };
-    } move_data;
+    // union {
+    //     uint32_t raw;
+    //     struct {
+    //         uint8_t currX;
+    //         uint8_t inverted_currX;
+    //         uint8_t currY;
+    //         uint8_t inverted_currY;
+    //     };
+    // } move_data;
 
-    move_data.raw = rx_data;
-    if((move_data.ident != (move_data.inverted_ident ^ 0xff)) ||
-    (move_data.move != (move_data.inverted_move ^ 0xff))){
+    uint8_t invDest = rx_data >> 24;
+    uint8_t dest = (rx_data >> 16) & (0x00ff);
+    uint8_t invCurr = (rx_data >> 8) & (0x0000ff);
+    uint8_t curr = rx_data & (0x000000ff);
+
+    if((invDest!= (dest ^ 0xff)) ||
+    (invCurr != (curr^ 0xff))){
         data.data_valid = false; // Data is invalid
         data.curr_x = 0x0;
         data.curr_y = 0x0;
@@ -57,10 +61,10 @@ ir_data_t decode_and_check(uint32_t rx_data){
     }
     else{
         data.data_valid = true;
-        data.curr_x = (move_data.ident >> 3) & 0x7;
-        data.curr_y = (move_data.ident & 0x7);
-        data.move_x = (move_data.move >> 3) & (0x7);
-        data.move_y = (move_data.move & 0x7);
+        data.curr_x = curr >> 4;
+        data.curr_y = curr & 0xf;
+        data.move_x = dest >> 4;
+        data.move_y = dest & 0xf;
     }
     return data;
 }
