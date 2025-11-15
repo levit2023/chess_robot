@@ -9,7 +9,8 @@ typedef struct nec_config{
 }nec_config_t;
 
 typedef struct ir_data{
-    uint8_t piece;
+    uint8_t curr_x;
+    uint8_t curr_y;
     uint8_t move_x;
     uint8_t move_y;
     bool data_valid;

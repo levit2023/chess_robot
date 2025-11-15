@@ -24,7 +24,7 @@ int main()
     while(true){
         rx_data = data_recieve(rx_sm, pio);
         move_data = decode_and_check(rx_data);
-        if(move_data.piece == piece && move_data.data_valid){
+        if((ms.x_pos == move_data.curr_x) && (ms.y_pos == move_data.curr_y)){
             move_to(&ms, move_data.move_x, move_data.move_y);
         }
         // if(move_data.data_valid){

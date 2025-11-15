@@ -50,13 +50,15 @@ ir_data_t decode_and_check(uint32_t rx_data){
     if((move_data.ident != (move_data.inverted_ident ^ 0xff)) ||
     (move_data.move != (move_data.inverted_move ^ 0xff))){
         data.data_valid = false; // Data is invalid
-        data.piece = 0x0;
+        data.curr_x = 0x0;
+        data.curr_y = 0x0;
         data.move_x = 0x0;
         data.move_y = 0x0;
     }
     else{
         data.data_valid = true;
-        data.piece = move_data.ident;
+        data.curr_x = (move_data.ident >> 3) & 0x7;
+        data.curr_y = (move_data.ident & 0x7);
         data.move_x = (move_data.move >> 3) & (0x7);
         data.move_y = (move_data.move & 0x7);
     }
