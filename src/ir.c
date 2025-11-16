@@ -20,36 +20,47 @@ void ir_send(PIO pio, uint32_t data, int tx_sm){
 
 }
 
-void ir_receive(PIO pio, int rx_sm){
+uint32_t ir_receive(PIO pio, int rx_sm){
+    uint32_t rx_data;
     while (!pio_sm_is_rx_fifo_empty(pio, rx_sm)) {
-        uint32_t rx_data = pio_sm_get(pio, rx_sm);
-        if (decode_and_check(rx_data)) {
-            // Successful transmission, overwrite previous successful line
-            printf("\r\ttransmitted: %02x\n", rx_data);
-        }
+        rx_data = pio_sm_get(pio, rx_sm);
     }
+    return rx_data;
 }
 
-bool decode_and_check(uint32_t rx_data){
+ir_data_t decode_and_check(uint32_t rx_data){
+    ir_data_t data;
+    // union {
+    //     uint32_t raw;
+    //     struct {
+    //         uint8_t currX;
+    //         uint8_t inverted_currX;
+    //         uint8_t currY;
+    //         uint8_t inverted_currY;
+    //     };
+    // } move_data;
 
-    union {
-        uint32_t raw;
-        struct {
-            uint8_t ident;
-            uint8_t inverted_ident;
-            uint8_t move;
-            uint8_t inverted_move;
-        };
-    } move_data;
+    uint8_t invDest = rx_data >> 24;
+    uint8_t dest = (rx_data >> 16) & (0x00ff);
+    uint8_t invCurr = (rx_data >> 8) & (0x0000ff);
+    uint8_t curr = rx_data & (0x000000ff);
 
-    move_data.raw = rx_data;
-    if((move_data.ident != (move_data.inverted_ident ^ 0xff)) ||
-    (move_data.move != (move_data.inverted_ident ^ 0xff))){
-        return true; // Data is invalid
+    if((invDest!= (dest ^ 0xff)) ||
+    (invCurr != (curr^ 0xff))){
+        data.data_valid = false; // Data is invalid
+        data.curr_x = 0x0;
+        data.curr_y = 0x0;
+        data.move_x = 0x0;
+        data.move_y = 0x0;
     }
     else{
-        return true;
+        data.data_valid = true;
+        data.curr_x = curr >> 4;
+        data.curr_y = curr & 0xf;
+        data.move_x = dest >> 4;
+        data.move_y = dest & 0xf;
     }
+    return data;
 }
 
 uint32_t encode_data(uint8_t curr_position, uint8_t move){
@@ -57,4 +68,3 @@ uint32_t encode_data(uint8_t curr_position, uint8_t move){
     return (move ^ 0xff) << 24 | move << 16 | (curr_position ^ 0xff) << 8 | curr_position;  
 
 }
-

@@ -46,8 +46,10 @@ bool en_passant = false;
 int en_pass_x;
 int en_pass_y;
 int logic_tx_sm;
+int logic_rx_sm;
 PIO pio = pio0;
 uint tx_gpio = 27;
+uint rx_gpio = 2;
 
 
 
@@ -1058,6 +1060,13 @@ void gpio_chess_logic_isr(){
                     uint32_t packet = encode_data(current_position, new_position);
                     printf("%02x\n", packet);
                     ir_send(pio, packet, logic_tx_sm);
+                    uint32_t recieved_data;
+                    do{
+                        recieved_data = ir_receive(pio, logic_rx_sm);
+                        ir_send(pio, packet, logic_tx_sm);
+                        busy_wait_ms(40);
+                    }
+                    while (recieved_data == 0x0F0F);
                     if(selected_square[0] == en_pass_x){
                         if(!current_move && selected_square[1] + 1 == en_pass_y && chosen_piece == WHITE_PAWN && en_passant){
                             draw_captured(board[en_pass_y][en_pass_x], pieces_taken_w * 0.3, 8, false);
@@ -1227,57 +1236,85 @@ void board_setup(){
     init_adc_freerun();
 
     for(;;){
-        adc_select_input(2);
-        if(adc_hw->result > 4000){ //going down
-            if(selected_square[1] < 7){
-                old_coordinates[1] = selected_square[1];
-                old_coordinates[0] = selected_square[0];
-                selected_square[1]++;
-                old_piece = board[old_coordinates[1]][old_coordinates[0]];
-                draw_square(old_piece, old_coordinates[0], old_coordinates[1], false);
-                selected_piece = board[selected_square[1]][selected_square[0]];
-                draw_square(selected_piece, selected_square[0], selected_square[1], true); 
+        if(!current_move){
+            adc_select_input(2);
+            if(adc_hw->result > 4000){ //going down
+                if(selected_square[1] < 7){
+                    old_coordinates[1] = selected_square[1];
+                    old_coordinates[0] = selected_square[0];
+                    selected_square[1]++;
+                    old_piece = board[old_coordinates[1]][old_coordinates[0]];
+                    draw_square(old_piece, old_coordinates[0], old_coordinates[1], false);
+                    selected_piece = board[selected_square[1]][selected_square[0]];
+                    draw_square(selected_piece, selected_square[0], selected_square[1], true); 
+                }
+                sleep_ms(20);
             }
-            sleep_ms(200);
+            else if(adc_hw->result < 10){ //going up
+                if(selected_square[1] > 0){
+                    old_coordinates[1] = selected_square[1];
+                    old_coordinates[0] = selected_square[0];
+                    selected_square[1]--;
+                    old_piece = board[old_coordinates[1]][old_coordinates[0]];
+                    draw_square(old_piece, old_coordinates[0], old_coordinates[1], false);
+                    selected_piece = board[selected_square[1]][selected_square[0]];
+                    draw_square(selected_piece, selected_square[0], selected_square[1], true); 
+                }   
+                sleep_ms(20);
+            }
+            //adc_fifo_drain();
+            adc_select_input(3);
+            sleep_ms(30);
+            if(adc_hw->result > 4000){
+                if(selected_square[0] > 0){
+                    old_coordinates[1] = selected_square[1];
+                    old_coordinates[0] = selected_square[0];
+                    selected_square[0]--;
+                    old_piece = board[old_coordinates[1]][old_coordinates[0]];
+                    draw_square(old_piece, old_coordinates[0], old_coordinates[1], false);
+                    selected_piece = board[selected_square[1]][selected_square[0]];
+                    draw_square(selected_piece, selected_square[0], selected_square[1], true); 
+                }
+                sleep_ms(20);
+            }
+            else if(adc_hw->result < 10){
+                if(selected_square[0] < 7){
+                    old_coordinates[1] = selected_square[1];
+                    old_coordinates[0] = selected_square[0];
+                    selected_square[0]++;
+                    old_piece = board[old_coordinates[1]][old_coordinates[0]];
+                    draw_square(old_piece, old_coordinates[0], old_coordinates[1], false);
+                    selected_piece = board[selected_square[1]][selected_square[0]];
+                    draw_square(selected_piece, selected_square[0], selected_square[1], true); 
+                }
+                sleep_ms(20);
+            } 
         }
-        else if(adc_hw->result < 10){ //going up
-            if(selected_square[1] > 0){
-                old_coordinates[1] = selected_square[1];
-                old_coordinates[0] = selected_square[0];
-                selected_square[1]--;
-                old_piece = board[old_coordinates[1]][old_coordinates[0]];
-                draw_square(old_piece, old_coordinates[0], old_coordinates[1], false);
-                selected_piece = board[selected_square[1]][selected_square[0]];
-                draw_square(selected_piece, selected_square[0], selected_square[1], true); 
+        else{
+            uint32_t recieved_data = ir_receive(pio, logic_rx_sm);
+            ir_data_t move_data = decode_and_check(recieved_data);
+            if(move_data.data_valid){
+                //first, send acknowledge that data was recieved successfully (0x0F0F)
+                ir_send(pio, 0x0F0F, logic_tx_sm);
+                board[move_data.move_y][move_data.move_x] = board[move_data.curr_y][move_data.curr_x];
+                board[move_data.curr_y][move_data.curr_x] = 0;
+                draw_square(board[move_data.curr_y][move_data.curr_x], move_data.curr_x, move_data.curr_y, false);
+                draw_square(board[move_data.move_y][move_data.move_x], move_data.move_x, move_data.move_y, false);
+                current_move = false;
+                if(checkmate()){
+                    if(current_move){
+                        LCD_DrawString(0, 0, WHITE, BLACK, "White Wins", 12, false);
+                    }
+                    else{
+                        LCD_DrawString(0, 0, WHITE, BLACK, "Black Wins", 12, false);
+                    }
+                }
+                else if(stalemate()){
+                    LCD_DrawString(0, 0, WHITE, BLACK, "TIE NO ONE WINS!", 12, false);
+                }
+                delete_list(0);
             }
-            sleep_ms(200);
         }
-        //adc_fifo_drain();
-        adc_select_input(3);
-        if(adc_hw->result > 4000){
-            if(selected_square[0] > 0){
-                old_coordinates[1] = selected_square[1];
-                old_coordinates[0] = selected_square[0];
-                selected_square[0]--;
-                old_piece = board[old_coordinates[1]][old_coordinates[0]];
-                draw_square(old_piece, old_coordinates[0], old_coordinates[1], false);
-                selected_piece = board[selected_square[1]][selected_square[0]];
-                draw_square(selected_piece, selected_square[0], selected_square[1], true); 
-            }
-            sleep_ms(200);
-        }
-        else if(adc_hw->result < 10){
-            if(selected_square[0] < 7){
-                old_coordinates[1] = selected_square[1];
-                old_coordinates[0] = selected_square[0];
-                selected_square[0]++;
-                old_piece = board[old_coordinates[1]][old_coordinates[0]];
-                draw_square(old_piece, old_coordinates[0], old_coordinates[1], false);
-                selected_piece = board[selected_square[1]][selected_square[0]];
-                draw_square(selected_piece, selected_square[0], selected_square[1], true); 
-            }
-            sleep_ms(200);
-        } 
         //adc_fifo_drain();
     }
 }
