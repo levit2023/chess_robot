@@ -1090,13 +1090,31 @@ void gpio_chess_logic_isr(){
                     //     busy_wait_ms(40);
                     // }
                     // while (recieved_data == 0x0F0F);
+                    int wait_time = 1000 * (4.375 * (abs(chosen_coordinates[0] - selected_square[0]) + abs(selected_square[0]-selected_square[1])));
+                    busy_wait_ms(wait_time);
                     if(selected_square[0] == en_pass_x){
                         if(!current_move && selected_square[1] + 1 == en_pass_y && chosen_piece == WHITE_PAWN && en_passant){
+                            current_position = en_pass_x << 4 | 7 - en_pass_y;
+                            uint8_t new_x  = 7 + ((pieces_taken_w % 8 != 0) ? pieces_taken_w % 8 : 0);
+                            uint8_t new_y = pieces_taken_w / 8;
+                            uint8_t new_position = new_x << 4 | new_y;
+                            packet = encode_data(current_position, new_position);
+                            ir_send(pio, packet, logic_tx_sm);
+                            wait_time = 1000 * (4.375 * (abs(new_x - en_pass_x) + abs(new_y-en_pass_y)));
+                            busy_wait_ms(wait_time);
                             draw_captured(board[en_pass_y][en_pass_x], pieces_taken_w * 0.3, 8, false);
                             pieces_taken_w++;
                             board[en_pass_y][en_pass_x] = 0;
                         }
                         else if(current_move && selected_square[1] - 1 == en_pass_y && chosen_piece == BLACK_PAWN && en_passant){
+                            current_position = en_pass_x << 4 | 7 - en_pass_y;
+                            uint8_t new_x  = 7 + ((pieces_taken_b % 8 != 0) ? pieces_taken_b % 8 : 0);
+                            uint8_t new_y = 7 - pieces_taken_b / 8;
+                            uint8_t new_position = new_x << 4 | new_y;
+                            packet = encode_data(current_position, new_position);
+                            ir_send(pio, packet, logic_tx_sm);
+                            wait_time = 1000 * (4.375 * (abs(new_x - en_pass_x) + abs(new_y-en_pass_y)));
+                            busy_wait_ms(wait_time);
                             draw_captured(board[en_pass_y][en_pass_x], pieces_taken_b * 0.3, -1, false);
                             pieces_taken_b++;
                             board[en_pass_y][en_pass_x] = 0;
