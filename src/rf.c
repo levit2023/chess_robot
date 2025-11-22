@@ -28,7 +28,7 @@ void rf_send_init_pins() {
     gpio_init(SENDRF_CE);
     gpio_set_dir(SENDRF_CE, true);
     spi_init(spi0, 250000);
-    spi_set_format(spi0, 8, 0, 0, 1);
+    spi_set_format(spi0, 16, 0, 0, 1);
     hw_set_bits(&spi_get_hw(spi0)->cr1, 2);
 }
 
@@ -40,6 +40,8 @@ void rf_read_init_pins() {
     gpio_init(RECIEVERF_CE);
     gpio_set_dir(RECIEVERF_CE, true);
     spi_init(spi1, 250000);
+    spi_set_format(spi1, 16, 0, 0, 1);
+    hw_set_bits(&spi_get_hw(spi1)->cr1, 2);
 }
 
 void send_spi_cmd(spi_inst_t* spi, uint16_t value) {
@@ -53,27 +55,28 @@ void send_spi_cmd(spi_inst_t* spi, uint16_t value) {
 //     send_spi_cmd(spi, data_byte);
 // }
 
-void rf_send_data() {
+void rf_send_config() {
     sleep_ms(1);
-    send_spi_cmd(spi0, 0x20);
+    send_spi_cmd(spi0, 0x200E);
     sleep_us(40);
-    send_spi_cmd(spi0, 0x0C);
+    send_spi_cmd(spi0, 0x2400);
     sleep_us(40);
-    send_spi_cmd(spi0, 0x25);
+    send_spi_cmd(spi0, 0x256E);
     sleep_us(40);
-    send_spi_cmd(spi0, 0x6E);
+    send_spi_cmd(spi0, 0x2626);
+}
+
+void rf_send_data(){
+    sleep_ms(40);
+    send_spi_cmd(spi0, 0xA0AA);
     sleep_us(40);
-    send_spi_cmd(spi0, 0x28);
-    sleep_us(40);
-    send_spi_cmd(spi0, 0x20);
-    sleep_us(40);
-    send_spi_cmd(spi0, 0x0E);
-    sleep_us(40);
-    send_spi_cmd(spi0, 0xA0);
-    sleep_us(40);
-    send_spi_cmd(spi0, 0xAA);
+    // send_spi_cmd(spi0, 0x0E);
+    // sleep_us(40);
+    // send_spi_cmd(spi0, 0xA0);
+    // sleep_us(40);
+    // send_spi_cmd(spi0, 0xAA);
     gpio_put(SENDRF_CE, true);
-    sleep_us(12);
+    sleep_us(10);
     gpio_put(SENDRF_CE, false);
     sleep_us(130);
     gpio_put(SENDRF_CE, true);
@@ -81,36 +84,56 @@ void rf_send_data() {
     gpio_put(SENDRF_CE, false);
 }
 
-void rf_recieve_data() {
-    
-
-}
-
-void cd_init() {
+void rf_recieve_config() {
     sleep_ms(1);
-    send_spi_cmd(spi0, 0x3C);
+    send_spi_cmd(spi1, 0x200F);
     sleep_us(40);
-    send_spi_cmd(spi0, 0xC);
+    send_spi_cmd(spi1, 0x2100);
     sleep_us(40);
-    send_spi_cmd(spi0, 0x1);
-    sleep_ms(2);
-    send_spi_cmd(spi0, 0x6);
+    send_spi_cmd(spi1, 0x2201);
     sleep_us(40);
+    send_spi_cmd(spi1, 0x256E);
+    sleep_us(40);
+    send_spi_cmd(spi1, 0x2626);
+    sleep_us(40);
+    send_spi_cmd(spi1, 0x3102);
+
 }
 
-void cd_display1(const char *str) {
-    send_spi_cmd(spi0, 0x80);
+void rf_read_data(){
     sleep_us(40);
-    for(int i = 0; str[i] != '\0'; i++){
-        send_spi_data(spi0, str[i]);
-    }
+    gpio_put(RECIEVERF_CE, true);
+    sleep_us(130);
+    send_spi_cmd(spi1, 0x6100);
+    sleep_ms(40);
+    gpio_put(RECIEVERF_CE, false);
 }
-void cd_display2(const char *str) {
-    send_spi_cmd(spi0, 0xC0);
-    sleep_us(40);
-    for(int i = 0; str[i] != '\0'; i ++){
-        send_spi_data(spi0, str[i]);
-    }
-}
+
+// void cd_init() {
+//     sleep_ms(1);
+//     send_spi_cmd(spi0, 0x3C);
+//     sleep_us(40);
+//     send_spi_cmd(spi0, 0xC);
+//     sleep_us(40);
+//     send_spi_cmd(spi0, 0x1);
+//     sleep_ms(2);
+//     send_spi_cmd(spi0, 0x6);
+//     sleep_us(40);
+// }
+
+// void cd_display1(const char *str) {
+//     send_spi_cmd(spi0, 0x80);
+//     sleep_us(40);
+//     for(int i = 0; str[i] != '\0'; i++){
+//         send_spi_data(spi0, str[i]);
+//     }
+// }
+// void cd_display2(const char *str) {
+//     send_spi_cmd(spi0, 0xC0);
+//     sleep_us(40);
+//     for(int i = 0; str[i] != '\0'; i ++){
+//         send_spi_data(spi0, str[i]);
+//     }
+// }
 
 /***************************************************************** */

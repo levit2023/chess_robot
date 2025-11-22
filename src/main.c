@@ -36,9 +36,12 @@ int main()
     // Configures our microcontroller to 
     // communicate over UART through the TX/RX pins
     rf_send_init_pins();
-
+    rf_read_init_pins();
+    rf_send_config();
+    rf_recieve_config();
     while(true){
         rf_send_data();
+        
         // rx_data = data_recieve(rx_sm, pio);
         // move_data = decode_and_check(rx_data);
         // if((ms.x_pos == move_data.curr_x) && (ms.y_pos == move_data.curr_y)){
@@ -63,6 +66,7 @@ int main()
         //     }
         // }
         sleep_ms(200);
+        // rf_read_data();
     }
 
 
