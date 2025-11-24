@@ -29,18 +29,21 @@ int main()
     // stepper_init_pins();
     // stepper_init_timer();
     // move_init(&ms, piece);
-    // // stdio_init_all();
+    stdio_init_all();
     // stdio_usb_init();
     // //int tx_sm = nec_tx_init(pio, tx_gpio);
     // int rx_sm = nec_rx_init(pio, rx_gpio); 
     // Configures our microcontroller to 
     // communicate over UART through the TX/RX pins
+    int data_read = 0;
     rf_send_init_pins();
     rf_read_init_pins();
     rf_send_config();
     rf_recieve_config();
+    rf_gpio_init_tx();
+    rf_gpio_init_rx();
     while(true){
-        rf_send_data();
+        // rf_send_data();
         
         // rx_data = data_recieve(rx_sm, pio);
         // move_data = decode_and_check(rx_data);
@@ -64,9 +67,12 @@ int main()
         //     else{
         //         printf("\r\tPass Parity Error\n: %02x", move_data.piece);
         //     }
-        // }
+        // // }
         sleep_ms(200);
-        // rf_read_data();
+        // data_read = rf_read_data();
+        printf("\r\tRecieved: %04x\n", data_read);
+        fflush(stdout);
+
     }
 
 
