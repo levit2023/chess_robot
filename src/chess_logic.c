@@ -8,6 +8,7 @@
 #include "pieces.h"
 #include "ir.h"
 #include <math.h>
+#include "rf.h"
 
 #define PIN_SDI    19
 #define PIN_CS     17
@@ -51,6 +52,12 @@ int logic_rx_sm;
 PIO pio = pio0;
 uint tx_gpio = 27;
 uint rx_gpio = 2;
+
+const int SPI_SENDRF_SCK = 46;
+const int SPI_SENDRF_CSn = 45;
+const int SPI_SENDRF_TX = 47;
+const int SPI_SENDRF_RX = 44;
+const int SENDRF_CE = 35;
 
 
 
@@ -1082,7 +1089,7 @@ void gpio_chess_logic_isr(){
                     //printf("%02x\n", new_position);
                     uint32_t packet = encode_data(current_position, new_position);
                     //printf("%02x\n", packet);
-                    ir_send(pio, packet, logic_tx_sm);
+                    rf_send_data(packet);
                     //uint32_t recieved_data;
                     // do{
                     //     recieved_data = ir_receive(pio, logic_rx_sm);
@@ -1099,7 +1106,7 @@ void gpio_chess_logic_isr(){
                             uint8_t new_y = pieces_taken_w / 8;
                             uint8_t new_position = new_x << 4 | new_y;
                             packet = encode_data(current_position, new_position);
-                            ir_send(pio, packet, logic_tx_sm);
+                            ///rf_data_send(pio, packet, logic_tx_sm);
                             wait_time = 1000 * (4.375 * (abs(new_x - en_pass_x) + abs(new_y-en_pass_y)));
                             busy_wait_ms(wait_time);
                             draw_captured(board[en_pass_y][en_pass_x], pieces_taken_w * 0.3, 8, false);
@@ -1264,6 +1271,10 @@ void board_setup(){
     LCD_Clear(0x0000); // Clear the screen to black
 
     logic_tx_sm = nec_tx_init(pio, tx_gpio);
+
+    rf_send_init_pins();
+    rf_send_config();
+    rf_gpio_init_tx();
     
     for(int i = 0; i < 8; i++){
         for(int j = 0; j < 8; j++){
