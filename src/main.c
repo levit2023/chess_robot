@@ -36,6 +36,7 @@ int main()
     // Configures our microcontroller to 
     // communicate over UART through the TX/RX pins
     int data_read = 0;
+    int data_send = 0;
     rf_send_init_pins();
     rf_read_init_pins();
     rf_send_config();
@@ -43,8 +44,8 @@ int main()
     rf_gpio_init_tx();
     rf_gpio_init_rx();
     while(true){
-        // rf_send_data();
-        
+        rf_send_data(data_send);
+        data_send += 1;
         // rx_data = data_recieve(rx_sm, pio);
         // move_data = decode_and_check(rx_data);
         // if((ms.x_pos == move_data.curr_x) && (ms.y_pos == move_data.curr_y)){
@@ -69,8 +70,8 @@ int main()
         //     }
         // // }
         sleep_ms(200);
-        // data_read = rf_read_data();
-        printf("\r\tRecieved: %04x\n", data_read);
+        data_read = rf_read_data();
+        printf("\r\tRecieved: %08x", data_read);
         fflush(stdout);
 
     }

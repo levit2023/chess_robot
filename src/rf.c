@@ -76,7 +76,7 @@ void rf_send_config() {
 
 void rf_send_data(int data){
     sleep_ms(40);
-    rf_bit_bang_tx(0xABCDEF01, 4);
+    rf_bit_bang_tx(data, 4);
     // send_spi_cmd(spi0, 0x0000, 5);
     // send_spi_cmd(spi0, 0xA0AA);
     // sleep_us(40);
@@ -210,8 +210,6 @@ int rf_bit_bang_rx(int data, int data_size){
         gpio_put(SPI_RECIEVERF_SCK, false);
         sleep_us(5);
     }
-    gpio_put(SPI_RECIEVERF_CSn, true);
-    sleep_us(10);
     for(int i = 7; i >= 0; i--){
         zero_or_one = (0xC200 & (1u << (i+8)));
         gpio_put(SPI_RECIEVERF_TX, zero_or_one);
@@ -221,6 +219,8 @@ int rf_bit_bang_rx(int data, int data_size){
         gpio_put(SPI_RECIEVERF_SCK, false);
         sleep_us(5);
     }
+    gpio_put(SPI_RECIEVERF_CSn, true);
+    sleep_us(10);
     return data_read;
 }
 
