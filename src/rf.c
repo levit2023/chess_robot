@@ -39,14 +39,14 @@ void rf_read_init_pins() {
     gpio_set_function(SPI_RECIEVERF_CSn, 1);
     gpio_init(RECIEVERF_CE);
     gpio_set_dir(RECIEVERF_CE, true);
-    spi_init(spi1, 250000);
-    spi_set_format(spi1, 16, 0, 0, 1);
-    hw_set_bits(&spi_get_hw(spi1)->cr1, 2);
+    spi_init(spi0, 250000);
+    spi_set_format(spi0, 16, 0, 0, 1);
+    hw_set_bits(&spi_get_hw(spi0)->cr1, 2);
 }
 
 void send_spi_cmd(spi_inst_t* spi, uint16_t value, int size) {
-    spi_set_format(spi0, 8*size, 0, 0, 1);
-    hw_set_bits(&spi_get_hw(spi0)->cr1, 2);
+    // spi_set_format(spi0, 8*size, 0, 0, 1);
+    // hw_set_bits(&spi_get_hw(spi0)->cr1, 2);
     bool busy = spi_is_busy(spi);
     while(busy);
     spi_write16_blocking(spi, &value, 1);
@@ -96,19 +96,19 @@ void rf_send_data(int data){
 
 void rf_recieve_config() {
     sleep_ms(1);
-    send_spi_cmd(spi1, 0x200F, 2);
+    send_spi_cmd(spi0, 0x200F, 2);
     sleep_us(40);
-    send_spi_cmd(spi1, 0x2100, 2);
+    send_spi_cmd(spi0, 0x2100, 2);
     sleep_us(40);
-    send_spi_cmd(spi1, 0x2201, 2);
+    send_spi_cmd(spi0, 0x2201, 2);
     sleep_us(40);
-    send_spi_cmd(spi1, 0x2303, 2);
+    send_spi_cmd(spi0, 0x2303, 2);
     sleep_us(40);
-    send_spi_cmd(spi1, 0x256E, 2);
+    send_spi_cmd(spi0, 0x256E, 2);
     sleep_us(40);
-    send_spi_cmd(spi1, 0x2626, 2);
+    send_spi_cmd(spi0, 0x2626, 2);
     sleep_us(40);
-    send_spi_cmd(spi1, 0x3104, 2);
+    send_spi_cmd(spi0, 0x3104, 2);
 }
 
 int rf_read_data(){
@@ -186,6 +186,7 @@ void rf_bit_bang_tx(int data, int data_size){
 
 int rf_bit_bang_rx(int data, int data_size){
     int data_read = 0;
+    int data_status = 0;
     bool gpio_read;
     bool zero_or_one;
     gpio_put(SPI_RECIEVERF_CSn, false);
@@ -210,8 +211,19 @@ int rf_bit_bang_rx(int data, int data_size){
         gpio_put(SPI_RECIEVERF_SCK, false);
         sleep_us(5);
     }
+    // for(int i = 7; i >= 0; i--){
+    //     zero_or_one = (0xFF00 & (1u << (i+8)));
+    //     gpio_put(SPI_RECIEVERF_TX, zero_or_one);
+    //     sleep_us(1);
+    //     gpio_put(SPI_RECIEVERF_SCK, true);
+    //     gpio_read = gpio_get(SPI_RECIEVERF_RX);
+    //     data_status += (gpio_read << i);
+    //     sleep_us(5);
+    //     gpio_put(SPI_RECIEVERF_SCK, false);
+    //     sleep_us(5);
+    // }
     for(int i = 7; i >= 0; i--){
-        zero_or_one = (0xC200 & (1u << (i+8)));
+        zero_or_one = (0xE200 & (1u << (i+8)));
         gpio_put(SPI_RECIEVERF_TX, zero_or_one);
         sleep_us(1);
         gpio_put(SPI_RECIEVERF_SCK, true);
