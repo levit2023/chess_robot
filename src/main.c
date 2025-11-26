@@ -23,7 +23,7 @@ uint rx_gpio = 12;
 int main()
 {
     move_state_t ms;
-    chess_piece_t piece = B_KNIGHT_B; //starting position
+    chess_piece_t piece = W_PAWN_B; //starting position
     // uint32_t rx_data;
     ir_data_t move_data;
     stepper_init_pins();
