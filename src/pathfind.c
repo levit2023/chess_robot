@@ -9,12 +9,6 @@
 
 struct movement path_array[9] = {0}; //initialize to all 0
 
-typedef enum {
-    DIRECT = 0,
-    ON_GRID = 1,
-    OFF_GRID = 2
-} pathfind_mode_t;
-
 struct movement *find_path(pathfind_mode_t mode, int pos_x, int pos_y, int set_x, int set_y){
     double WHEEL_CIRCUMFERENCE = M_PI * WHEEL_DIAMETER; //distance traveled in one rotation
     double TURN_CIRCUMFERENCE = M_PI * WHEEL_SEPARATION; //distance the wheels have to move to make a full revolution
@@ -76,7 +70,7 @@ struct movement *find_path(pathfind_mode_t mode, int pos_x, int pos_y, int set_x
                 path_array[step].rot = fabs(dy) * GRID_SIZE / WHEEL_CIRCUMFERENCE;
                 step ++;
             }
-            
+
             break;
         }
         OFF_GRID: {

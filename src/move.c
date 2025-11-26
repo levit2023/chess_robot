@@ -7,9 +7,9 @@ void move_init(move_state_t * state, chess_piece_t chess_piece) {
   state->y_pos = (chess_piece >> 0) & 0x7;
 }
 
-void move_to(move_state_t * state, int x, int y) {
+void move_to(move_state_t * state, pathfind_mode_t mode, int x, int y) {
     struct movement *path_addr;
-    path_addr = find_path(state->x_pos, state->y_pos, x, y);
+    path_addr = find_path(mode, state->x_pos, state->y_pos, x, y);
 
     for (int i = 0; i < 10; i ++){
         printf("Direction: %d, Rotations: %.2lf\n", path_addr[i].dir, path_addr[i].rot);
