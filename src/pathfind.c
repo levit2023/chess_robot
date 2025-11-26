@@ -9,122 +9,163 @@
 
 struct movement path_array[9] = {0}; //initialize to all 0
 
-struct movement *find_path(int pos_x, int pos_y, int set_x, int set_y){
+typedef enum {
+    DIRECT = 0,
+    ON_GRID = 1,
+    OFF_GRID = 2
+} pathfind_mode_t;
+
+struct movement *find_path(pathfind_mode_t mode, int pos_x, int pos_y, int set_x, int set_y){
     double WHEEL_CIRCUMFERENCE = M_PI * WHEEL_DIAMETER; //distance traveled in one rotation
     double TURN_CIRCUMFERENCE = M_PI * WHEEL_SEPARATION; //distance the wheels have to move to make a full revolution
     //first move onto the movement grid (between pieces)
     path_array[0].dir = FORWARD;
     path_array[0].rot = (GRID_SIZE / 2.0) / WHEEL_CIRCUMFERENCE;
 
-    //turn to move horizontally
-    if (set_x - pos_x > 0) {
-        path_array[1].dir = TURN_RIGHT;
-    } else {
-        path_array[1].dir = TURN_LEFT;
-    }
-    path_array[1].rot = (0.25 * TURN_CIRCUMFERENCE) / WHEEL_CIRCUMFERENCE; //rotate 90 degrees
+    switch (mode) {
+        DIRECT: {
+            double dx = (set_x - pos_x) * GRID_SIZE;
+            double dy = (set_y - pos_y) * GRID_SIZE;
 
-    //horizontal movement
-    path_array[2].dir = FORWARD;
-    //(|set x - current x| - grid size / 2) / wheel circumference
-    if (set_x - pos_x > 0) {
-        path_array[2].rot = ((set_x - pos_x) * GRID_SIZE - GRID_SIZE / 2.0) / WHEEL_CIRCUMFERENCE;
-    } else {
-        path_array[2].rot = fabs((-(set_x - pos_x) * GRID_SIZE - GRID_SIZE / 2.0)) / WHEEL_CIRCUMFERENCE;
-    }
+            //turn to face new position
+            double target_angle = atan2(dx, dy);
+            double angle_mag = fabs(target_angle);
+            int turn_dir = (target_angle > 0) ? TURN_LEFT : TURN_RIGHT;
+            path_array[1].dir = turn_dir;
+            path_array[1].rot = (angle_mag / (2.0 * M_PI)) * TURN_CIRCUMFERENCE / WHEEL_CIRCUMFERENCE;
 
-    //turn to vertical movement
-    if (set_x - pos_x > 0) {
-        if (set_y - pos_y > 0) {
-            path_array[3].dir = TURN_LEFT;
-        } else {
-            path_array[3].dir = TURN_RIGHT;
+            //travel straight to new square
+            double dist = sqrt(dx*dx + dy*dy);
+            path_array[2].dir = FORWARD;
+            path_array[2].rot = dist / WHEEL_CIRCUMFERENCE;
+
+            //turn back to face forward
+            path_array[3].dir = (turn_dir == TURN_LEFT) ? TURN_RIGHT : TURN_RIGHT;
+            path_array[3].rot = path_array[1].rot;
+
+            break;
         }
-    } else {
-        if (set_y - pos_y > 0) {
-            path_array[3].dir = TURN_RIGHT;
-        } else {
-            path_array[3].dir = TURN_LEFT;
-        }
-    }
-    path_array[3].rot = (0.25 * TURN_CIRCUMFERENCE) / WHEEL_CIRCUMFERENCE; //rotate 90 degrees
+        ON_GRID: {
+            int dx = set_x - pos_x;
+            int dy = set_y - pos_y;
 
-    //vertical movement
-    path_array[4].dir = FORWARD;
-    //(|set x - current x| - grid size / 2) / wheel circumference
-    if (set_y - pos_y > 0) {
-        path_array[4].rot = ((set_y - pos_y) * GRID_SIZE - GRID_SIZE / 2.0) / WHEEL_CIRCUMFERENCE;
-    } else {
-        path_array[4].rot = -((set_y - pos_y) * GRID_SIZE - GRID_SIZE / 2.0) / WHEEL_CIRCUMFERENCE;
-    }
+            int step = 1;
 
-    //turn to horizontal to align piece on-grid horizontally
-    if (set_x - pos_x >= 0) {
-        if (set_y - pos_y > 0) {
-            path_array[5].dir = TURN_RIGHT;
-        } else {
-            path_array[5].dir = TURN_LEFT;
-        }
-    } else if (set_x == pos_x) {
-        path_array[5].dir = TURN_RIGHT;
-    } else {
-        if (set_y - pos_y > 0) {
-            path_array[5].dir = TURN_LEFT;
-        } else {
-            path_array[5].dir = TURN_RIGHT;
-        }
-    }
-    path_array[5].rot = (0.25 * TURN_CIRCUMFERENCE) / WHEEL_CIRCUMFERENCE;
+            //horizontal turn
+            if (dx != 0) {
+                path_array[step].dir = (dx > 0) ? TURN_RIGHT : TURN_LEFT;
+                path_array[step].rot = (0.25 * TURN_CIRCUMFERENCE) / WHEEL_CIRCUMFERENCE;
+                step ++;
 
-    // //align to grid horizontally
-    // path_array[6].dir = FORWARD;
-    // path_array[6].rot = (GRID_SIZE / 2.0) / WHEEL_CIRCUMFERENCE;
-    
-    // //last turn
-    // if (set_x - pos_x > 0) {
-    //     if (set_y - pos_y > 0) {
-    //         path_array[7].dir = TURN_LEFT;
-    //     } else {
-    //         path_array[7].dir = TURN_RIGHT;
-    //     }
-    // } else if (set_x == pos_x) {
-    //     path_array[7].dir = TURN_LEFT;
-    // } else {
-    //     if (set_y - pos_y > 0) {
-    //         path_array[7].dir = TURN_RIGHT;
-    //     } else {
-    //         path_array[7].dir = TURN_LEFT;
-    //     }
-    // }
-    // path_array[7].rot = (0.25 * TURN_CIRCUMFERENCE) / WHEEL_CIRCUMFERENCE; 
-    // 
-    // //center piece on square
-    // path_array[8].dir = BACKWARD;
-    // path_array[8].rot = (0.25 * TURN_CIRCUMFERENCE) / WHEEL_CIRCUMFERENCE; 
+                //move horizontally
+                path_array[step].dir = FORWARD;
+                path_array[step].rot = fabs(dx) * GRID_SIZE / WHEEL_CIRCUMFERENCE;
+                step ++;
 
-    path_array[6].dir = FORWARD;
-    path_array[6].rot = (GRID_SIZE / 2.0) / WHEEL_CIRCUMFERENCE;
-
-    if (set_x - pos_x >= 0) {
-        if (set_y - pos_y > 0) {
-            path_array[7].dir = TURN_LEFT;
-        } else {
-            if (set_x - pos_x == 0) {
-                path_array[7].dir = TURN_LEFT;
-            } else {
-                path_array[7].dir = TURN_LEFT;
+                //turn back to vertical
+                path_array[step].dir = (dx > 0) ?
+                    (dy > 0 ? TURN_LEFT : TURN_RIGHT) :
+                    (dy > 0 ? TURN_RIGHT : TURN_LEFT);
+                path_array[step].rot = (0.25 * TURN_CIRCUMFERENCE) / WHEEL_CIRCUMFERENCE;
+                step ++;
             }
+
+            //vertical movement
+            if (dy != 0) {
+                path_array[step].dir = (dy > 0) ? FORWARD : BACKWARD;
+                path_array[step].rot = fabs(dy) * GRID_SIZE / WHEEL_CIRCUMFERENCE;
+                step ++;
+            }
+            
+            break;
         }
-    } else if (set_x == pos_x) {
-        path_array[7].dir = TURN_RIGHT;
-    } else {
-        if (set_y - pos_y > 0) {
-            path_array[7].dir = TURN_RIGHT;
-        } else {
-            path_array[7].dir = TURN_RIGHT;
+        OFF_GRID: {
+            //turn to move horizontally
+            if (set_x - pos_x > 0) {
+                path_array[1].dir = TURN_RIGHT;
+            } else {
+                path_array[1].dir = TURN_LEFT;
+            }
+            path_array[1].rot = (0.25 * TURN_CIRCUMFERENCE) / WHEEL_CIRCUMFERENCE; //rotate 90 degrees
+        
+            //horizontal movement
+            path_array[2].dir = FORWARD;
+            //(|set x - current x| - grid size / 2) / wheel circumference
+            if (set_x - pos_x > 0) {
+                path_array[2].rot = ((set_x - pos_x) * GRID_SIZE - GRID_SIZE / 2.0) / WHEEL_CIRCUMFERENCE;
+            } else {
+                path_array[2].rot = fabs((-(set_x - pos_x) * GRID_SIZE - GRID_SIZE / 2.0)) / WHEEL_CIRCUMFERENCE;
+            }
+        
+            //turn to vertical movement
+            if (set_x - pos_x > 0) {
+                if (set_y - pos_y > 0) {
+                    path_array[3].dir = TURN_LEFT;
+                } else {
+                    path_array[3].dir = TURN_RIGHT;
+                }
+            } else {
+                if (set_y - pos_y > 0) {
+                    path_array[3].dir = TURN_RIGHT;
+                } else {
+                    path_array[3].dir = TURN_LEFT;
+                }
+            }
+            path_array[3].rot = (0.25 * TURN_CIRCUMFERENCE) / WHEEL_CIRCUMFERENCE; //rotate 90 degrees
+        
+            //vertical movement
+            path_array[4].dir = FORWARD;
+            //(|set x - current x| - grid size / 2) / wheel circumference
+            if (set_y - pos_y > 0) {
+                path_array[4].rot = ((set_y - pos_y) * GRID_SIZE - GRID_SIZE / 2.0) / WHEEL_CIRCUMFERENCE;
+            } else {
+                path_array[4].rot = -((set_y - pos_y) * GRID_SIZE - GRID_SIZE / 2.0) / WHEEL_CIRCUMFERENCE;
+            }
+        
+            //turn to horizontal to align piece on-grid horizontally
+            if (set_x - pos_x >= 0) {
+                if (set_y - pos_y > 0) {
+                    path_array[5].dir = TURN_RIGHT;
+                } else {
+                    path_array[5].dir = TURN_LEFT;
+                }
+            } else if (set_x == pos_x) {
+                path_array[5].dir = TURN_RIGHT;
+            } else {
+                if (set_y - pos_y > 0) {
+                    path_array[5].dir = TURN_LEFT;
+                } else {
+                    path_array[5].dir = TURN_RIGHT;
+                }
+            }
+            path_array[5].rot = (0.25 * TURN_CIRCUMFERENCE) / WHEEL_CIRCUMFERENCE;
+        
+            path_array[6].dir = FORWARD;
+            path_array[6].rot = (GRID_SIZE / 2.0) / WHEEL_CIRCUMFERENCE;
+        
+            if (set_x - pos_x >= 0) {
+                if (set_y - pos_y > 0) {
+                    path_array[7].dir = TURN_LEFT;
+                } else {
+                    if (set_x - pos_x == 0) {
+                        path_array[7].dir = TURN_LEFT;
+                    } else {
+                        path_array[7].dir = TURN_LEFT;
+                    }
+                }
+            } else if (set_x == pos_x) {
+                path_array[7].dir = TURN_RIGHT;
+            } else {
+                if (set_y - pos_y > 0) {
+                    path_array[7].dir = TURN_RIGHT;
+                } else {
+                    path_array[7].dir = TURN_RIGHT;
+                }
+            }
+            path_array[7].rot = (0.25 * TURN_CIRCUMFERENCE) / WHEEL_CIRCUMFERENCE;
+            break;
         }
     }
-    path_array[7].rot = (0.25 * TURN_CIRCUMFERENCE) / WHEEL_CIRCUMFERENCE;
     
     return &path_array;
 }
