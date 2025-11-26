@@ -29,9 +29,10 @@ int main()
     stepper_init_pins();
     stepper_init_timer();
     move_init(&ms, piece);
-    stdio_init_all();
+    // stdio_init_all();
+    stdio_usb_init();
     move_to(&ms, DIRECT, 5, 5);
-    // stdio_usb_init();
+    
     // // //int tx_sm = nec_tx_init(pio, tx_gpio);
     // // int rx_sm = nec_rx_init(pio, rx_gpio); 
     // // Configures our microcontroller to 
