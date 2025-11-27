@@ -5,7 +5,7 @@
 
 #define WHEEL_DIAMETER 0.052 //wheel diameter in meters
 #define WHEEL_SEPARATION 0.08643 //wheel separation in meters
-#define GRID_SIZE 0.2 //size of a single square in meters
+#define GRID_SIZE 0.25 //size of a single square in meters
 
 struct movement path_array[9] = {0}; //initialize to all 0
 
@@ -22,6 +22,7 @@ struct movement *find_path(pathfind_mode_t mode, int pos_x, int pos_y, int set_x
             double target_angle = atan2(dx, dy);
             double angle_mag = fabs(target_angle);
             int turn_dir = (target_angle - (0.5 * M_PI) > 0) ? TURN_LEFT : TURN_RIGHT;
+            turn_dir = dx > 0 ? turn_dir : -turn_dir;
             path_array[0].dir = turn_dir;
             path_array[0].rot = (angle_mag / (2.0 * M_PI)) * TURN_CIRCUMFERENCE / WHEEL_CIRCUMFERENCE;
 
