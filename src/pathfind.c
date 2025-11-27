@@ -31,7 +31,7 @@ struct movement *find_path(pathfind_mode_t mode, int pos_x, int pos_y, int set_x
             path_array[1].rot = dist / WHEEL_CIRCUMFERENCE;
 
             //turn back to face forward
-            path_array[2].dir = (turn_dir == TURN_LEFT) ? TURN_RIGHT : TURN_RIGHT;
+            path_array[2].dir = (turn_dir == TURN_LEFT) ? TURN_RIGHT : TURN_LEFT;
             path_array[2].rot = path_array[0].rot;
 
             break;
