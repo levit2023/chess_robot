@@ -18,4 +18,11 @@ void rf_gpio_init_rx();
 void rf_bit_bang_tx(int data, int data_size);
 int rf_bit_bang_rx(int data, int data_size);
 
+typedef struct rf_data{
+    uint8_t addr;
+    uint8_t cmd;
+    uint8_t data1;
+    uint8_t data2;
+} rf_data_t;
+
 #endif
