@@ -22,7 +22,7 @@ struct movement *find_path(pathfind_mode_t mode, int pos_x, int pos_y, int set_x
             double target_angle = atan2(dx, dy);
             double angle_mag = fabs(target_angle);
             int turn_dir = (target_angle - (0.5 * M_PI) > 0) ? TURN_LEFT : TURN_RIGHT;
-            turn_dir = dx > 0 ? turn_dir : -turn_dir;
+            turn_dir = dx > 0 ? turn_dir : (turn_dir == TURN_LEFT ? TURN_RIGHT : TURN_LEFT);
             path_array[0].dir = turn_dir;
             path_array[0].rot = (angle_mag / (2.0 * M_PI)) * TURN_CIRCUMFERENCE / WHEEL_CIRCUMFERENCE;
 
