@@ -100,6 +100,19 @@ void rf_bit_bang_tx(int data, int data_size){
     gpio_put(SPI_SENDRF_CSn, false);
     busy_wait_us(10);
     for(int j = 7; j >= 0; j--){
+        zero_or_one = (0xE100 & (1u << (j+8)));
+        gpio_put(SPI_SENDRF_TX, zero_or_one);
+        busy_wait_us(1);
+        gpio_put(SPI_SENDRF_SCK, true);
+        busy_wait_us(5);
+        gpio_put(SPI_SENDRF_SCK, false);
+        busy_wait_us(5);
+    }
+    gpio_put(SPI_SENDRF_CSn, true);
+    busy_wait_us(10);
+    gpio_put(SPI_SENDRF_CSn, false);
+    busy_wait_us(10);
+    for(int j = 7; j >= 0; j--){
         zero_or_one = (0xB000 & (1u << (j+8)));
         gpio_put(SPI_SENDRF_TX, zero_or_one);
         busy_wait_us(1);
@@ -120,10 +133,7 @@ void rf_bit_bang_tx(int data, int data_size){
     gpio_put(SPI_SENDRF_CSn, true);
     busy_wait_us(10);
     gpio_put(SENDRF_CE, true);
-    busy_wait_us(10);
-    gpio_put(SENDRF_CE, false);
-    busy_wait_us(130);
-    gpio_put(SENDRF_CE, true);
+    busy_wait_us(140);
     busy_wait_ms(4);
     gpio_put(SENDRF_CE, false);
 }
