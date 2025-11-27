@@ -22,17 +22,17 @@ struct movement *find_path(pathfind_mode_t mode, int pos_x, int pos_y, int set_x
             double target_angle = atan2(dx, dy);
             double angle_mag = fabs(target_angle);
             int turn_dir = (target_angle > 0) ? TURN_LEFT : TURN_RIGHT;
-            path_array[1].dir = turn_dir;
-            path_array[1].rot = (angle_mag / (2.0 * M_PI)) * TURN_CIRCUMFERENCE / WHEEL_CIRCUMFERENCE;
+            path_array[0].dir = turn_dir;
+            path_array[0].rot = (angle_mag / (2.0 * M_PI)) * TURN_CIRCUMFERENCE / WHEEL_CIRCUMFERENCE;
 
             //travel straight to new square
             double dist = sqrt(dx*dx + dy*dy);
-            path_array[2].dir = FORWARD;
-            path_array[2].rot = dist / WHEEL_CIRCUMFERENCE;
+            path_array[1].dir = FORWARD;
+            path_array[1].rot = dist / WHEEL_CIRCUMFERENCE;
 
             //turn back to face forward
-            path_array[3].dir = (turn_dir == TURN_LEFT) ? TURN_RIGHT : TURN_RIGHT;
-            path_array[3].rot = path_array[1].rot;
+            path_array[2].dir = (turn_dir == TURN_LEFT) ? TURN_RIGHT : TURN_RIGHT;
+            path_array[2].rot = path_array[1].rot;
 
             break;
         }
@@ -40,7 +40,7 @@ struct movement *find_path(pathfind_mode_t mode, int pos_x, int pos_y, int set_x
             int dx = set_x - pos_x;
             int dy = set_y - pos_y;
 
-            int step = 1;
+            int step = 0;
 
             //horizontal turn
             if (dx != 0) {
