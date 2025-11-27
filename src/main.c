@@ -31,7 +31,7 @@ int main()
     move_init(&ms, piece);
     // stdio_init_all();
     stdio_usb_init();
-    move_to(&ms, DIRECT, 5, 5);
+    move_to(&ms, DIRECT, 2, 2);
     
     // // //int tx_sm = nec_tx_init(pio, tx_gpio);
     // // int rx_sm = nec_rx_init(pio, rx_gpio); 
