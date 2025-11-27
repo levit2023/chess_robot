@@ -12,9 +12,6 @@ struct movement path_array[9] = {0}; //initialize to all 0
 struct movement *find_path(pathfind_mode_t mode, int pos_x, int pos_y, int set_x, int set_y){
     double WHEEL_CIRCUMFERENCE = M_PI * WHEEL_DIAMETER; //distance traveled in one rotation
     double TURN_CIRCUMFERENCE = M_PI * WHEEL_SEPARATION; //distance the wheels have to move to make a full revolution
-    //first move onto the movement grid (between pieces)
-    path_array[0].dir = FORWARD;
-    path_array[0].rot = (GRID_SIZE / 2.0) / WHEEL_CIRCUMFERENCE;
 
     switch (mode) {
         DIRECT: {
@@ -74,6 +71,10 @@ struct movement *find_path(pathfind_mode_t mode, int pos_x, int pos_y, int set_x
             break;
         }
         OFF_GRID: {
+            //first move onto the movement grid (between pieces)
+            path_array[0].dir = FORWARD;
+            path_array[0].rot = (GRID_SIZE / 2.0) / WHEEL_CIRCUMFERENCE;
+
             //turn to move horizontally
             if (set_x - pos_x > 0) {
                 path_array[1].dir = TURN_RIGHT;
@@ -157,6 +158,7 @@ struct movement *find_path(pathfind_mode_t mode, int pos_x, int pos_y, int set_x
                 }
             }
             path_array[7].rot = (0.25 * TURN_CIRCUMFERENCE) / WHEEL_CIRCUMFERENCE;
+            
             break;
         }
     }
