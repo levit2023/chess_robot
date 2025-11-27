@@ -56,8 +56,8 @@ struct movement *find_path(pathfind_mode_t mode, int pos_x, int pos_y, int set_x
 
                 //turn back to vertical
                 path_array[step].dir = (dx > 0) ?
-                    (dy > 0 ? TURN_LEFT : TURN_RIGHT) :
-                    (dy > 0 ? TURN_RIGHT : TURN_LEFT);
+                    TURN_LEFT :
+                    TURN_RIGHT;
                 path_array[step].rot = (0.25 * TURN_CIRCUMFERENCE) / WHEEL_CIRCUMFERENCE;
                 step ++;
             }
