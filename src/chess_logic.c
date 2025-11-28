@@ -1018,9 +1018,11 @@ void gpio_chess_logic_isr(){
             if(selected_square[1] != chosen_coordinates[1] || selected_square[0] != chosen_coordinates[0]){
                 //if the selected square is one of the legal moves
                 if(find_legal_move()){
+                    uint8_t command = 0x00;
                     int list_type = current_move ? 3 : 2;
                     move_generation = false;
                     if(board[selected_square[1]][selected_square[0]] != 0){
+                        command = 0x02;
                         uint8_t new_x;
                         uint8_t new_y;
                         uint32_t packet;
@@ -1028,25 +1030,25 @@ void gpio_chess_logic_isr(){
                         if(current_move){
                             new_x  = 7 + ((pieces_taken_b % 8 != 0) ? pieces_taken_b % 8 : 0);
                             new_y = 7 - pieces_taken_b / 8;
-                            uint8_t new_position = new_x << 4 | new_y;
-                            packet = encode_data(current_position, new_position);
                         }
                         else{
                             new_x  = 7 + ((pieces_taken_w % 8 != 0) ? pieces_taken_w % 8 : 0);
                             new_y = pieces_taken_w / 8;
-                            uint8_t new_position = new_x << 4 | new_y;
-                            packet = encode_data(current_position, new_position);
                         }
-                        ir_send(pio, packet, logic_tx_sm);
+                        packet = current_position << 24 | command << 16 | new_x << 8 | new_y;
+                        rf_send_data(packet);
                         int wait_time = 1000 * (4.375 * (abs(new_x - selected_square[0]) + abs(new_y-selected_square[1])));
                         busy_wait_ms(wait_time);
                     }
 
                     uint8_t current_position = (chosen_coordinates[0]) << 4 | (7-chosen_coordinates[1]);
                     //printf("%02x\n", current_position);
-                    uint8_t new_position = (selected_square[0] & 0xF) << 4 | ((7-selected_square[1]) & 0xF);
+                    uint16_t new_position = (selected_square[0] & 0xFF) << 8 | ((7-selected_square[1]) & 0xFF);
                     //printf("%02x\n", new_position);
-                    uint32_t packet = encode_data(current_position, new_position);
+                    if(chosen_piece == WHITE_KNIGHT || chosen_piece == BLACK_KNIGHT){
+                        command = 0x02;
+                    }
+                    uint32_t packet = current_position << 24 | command << 16 | new_position;
                     //printf("%02x\n", packet);
                     rf_send_data(packet);
                     //uint32_t recieved_data;
@@ -1060,11 +1062,11 @@ void gpio_chess_logic_isr(){
                     busy_wait_ms(wait_time);
                     if(selected_square[0] == en_pass_x){
                         if(!current_move && selected_square[1] + 1 == en_pass_y && chosen_piece == WHITE_PAWN && en_passant){
+                            command = 0x02;
                             current_position = en_pass_x << 4 | 7 - en_pass_y;
                             uint8_t new_x  = 7 + ((pieces_taken_w % 8 != 0) ? pieces_taken_w % 8 : 0);
                             uint8_t new_y = pieces_taken_w / 8;
-                            uint8_t new_position = new_x << 4 | new_y;
-                            packet = encode_data(current_position, new_position);
+                            packet = current_position << 24 | command << 16 | new_x << 8 | new_y;
                             rf_send_data(packet);
                             wait_time = 1000 * (4.375 * (abs(new_x - en_pass_x) + abs(new_y-en_pass_y)));
                             busy_wait_ms(wait_time);
@@ -1073,11 +1075,11 @@ void gpio_chess_logic_isr(){
                             board[en_pass_y][en_pass_x] = 0;
                         }
                         else if(current_move && selected_square[1] - 1 == en_pass_y && chosen_piece == BLACK_PAWN && en_passant){
+                            command = 0x02;
                             current_position = en_pass_x << 4 | 7 - en_pass_y;
                             uint8_t new_x  = 7 + ((pieces_taken_b % 8 != 0) ? pieces_taken_b % 8 : 0);
                             uint8_t new_y = 7 - pieces_taken_b / 8;
-                            uint8_t new_position = new_x << 4 | new_y;
-                            packet = encode_data(current_position, new_position);
+                            packet = current_position << 24 | command << 16 | new_x << 8 | new_y;
                             rf_send_data(packet);
                             wait_time = 1000 * (4.375 * (abs(new_x - en_pass_x) + abs(new_y-en_pass_y)));
                             busy_wait_ms(wait_time);
@@ -1104,9 +1106,10 @@ void gpio_chess_logic_isr(){
                     }
                     if((right_w_castle || left_w_castle) && !current_move){
                         if(selected_square[0] == 6){
+                            command = 0x02;
                             current_position = (7) << 4 | (0);
-                            new_position = (5) << 4 | (0 & 0xF);
-                            packet = encode_data(current_position, new_position);
+                            new_position = (5) << 8 | (0 & 0xF);
+                            packet = current_position << 24 | command << 16 | new_position;
                             rf_send_data(packet);
                             board[7][5] = WHITE_ROOK;
                             board[7][7] = 0;
@@ -1114,9 +1117,10 @@ void gpio_chess_logic_isr(){
                             left_w_castle = false;
                         }
                         else if(selected_square[0] == 2){
+                            command = 0x02;
                             current_position = (0) << 4 | (0);
-                            new_position = (3) << 4 | (0 & 0xF);
-                            packet = encode_data(current_position, new_position);
+                            new_position = (3) << 8 | (0 & 0xF);
+                            packet = current_position << 24 | command << 16 | new_position;
                             rf_send_data(packet);
                             board[7][3] = WHITE_ROOK;
                             board[7][0] = 0;
@@ -1126,9 +1130,10 @@ void gpio_chess_logic_isr(){
                     }
                     if((right_b_castle || left_b_castle) && current_move){
                         if(selected_square[0] == 6){
+                            command = 0x02;
                             current_position = (7) << 4 | (7);
-                            new_position = (5) << 4 | (7 & 0xF);
-                            packet = encode_data(current_position, new_position);
+                            new_position = (5 & 0xFF) << 8 | (7 & 0xFF);
+                            packet = current_position << 24 | command << 16 | new_position;
                             rf_send_data(packet);
                             board[0][5] = BLACK_ROOK;
                             board[0][7] = 0;
@@ -1136,9 +1141,10 @@ void gpio_chess_logic_isr(){
                             left_b_castle = false;
                         }
                         else if(selected_square[0] == 2){
+                            command = 0x02;
                             current_position = (0) << 4 | (7);
                             new_position = (5) << 4 | (0 & 0xF);
-                            packet = encode_data(current_position, new_position);
+                            packet = current_position << 24 | command << 16 | new_position;
                             rf_send_data(packet);
                             board[0][3] = BLACK_ROOK;
                             board[0][0] = 0;
