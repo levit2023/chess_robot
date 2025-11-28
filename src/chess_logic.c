@@ -1002,48 +1002,7 @@ bool checkmate(){
 }
 
 void gpio_chess_logic_isr(){
-    if(gpio_get_irq_event_mask(10) == GPIO_IRQ_LEVEL_HIGH){
-        gpio_acknowledge_irq(10, GPIO_IRQ_LEVEL_HIGH);
-        if(selected_square[1] > 0){
-            old_coordinates[1] = selected_square[1];
-            old_coordinates[0] = selected_square[0];
-            selected_square[1]--;
-            old_piece = board[old_coordinates[1]][old_coordinates[0]];
-            draw_square(old_piece, old_coordinates[0], old_coordinates[1], false);
-        }
-    }
-    else if(gpio_get_irq_event_mask(11) == GPIO_IRQ_LEVEL_HIGH){
-        gpio_acknowledge_irq(11, GPIO_IRQ_LEVEL_HIGH);
-        if(selected_square[1] < 7){
-            old_coordinates[1] = selected_square[1];
-            old_coordinates[0] = selected_square[0];
-            selected_square[1]++;
-            old_piece = board[old_coordinates[1]][old_coordinates[0]];
-            draw_square(old_piece, old_coordinates[0], old_coordinates[1], false);
-        }
-    }
-    else if(gpio_get_irq_event_mask(9) == GPIO_IRQ_LEVEL_HIGH){
-        gpio_acknowledge_irq(9, GPIO_IRQ_LEVEL_HIGH);
-        if(selected_square[0] > 0){
-            old_coordinates[1] = selected_square[1];
-            old_coordinates[0] = selected_square[0];
-            selected_square[0]--;
-            old_piece = board[old_coordinates[1]][old_coordinates[0]];
-            draw_square(old_piece, old_coordinates[0], old_coordinates[1], false);
-        }
-    }
-    else if(gpio_get_irq_event_mask(12) == GPIO_IRQ_LEVEL_HIGH){
-        gpio_acknowledge_irq(12, GPIO_IRQ_LEVEL_HIGH);
-        if(selected_square[0] < 7){
-            old_coordinates[1] = selected_square[1];
-            old_coordinates[0] = selected_square[0];
-            selected_square[0]++;
-            old_piece = board[old_coordinates[1]][old_coordinates[0]];
-            draw_square(old_piece, old_coordinates[0], old_coordinates[1], false);
-        }
-        
-    }
-    else if(gpio_get_irq_event_mask(13) == GPIO_IRQ_LEVEL_LOW){
+    if(gpio_get_irq_event_mask(13) == GPIO_IRQ_LEVEL_LOW){
         gpio_acknowledge_irq(13, GPIO_IRQ_LEVEL_LOW);
         // if move_generation is not on, then we need to select a piece to generate moves for. 
         if((!move_generation)){
@@ -1106,7 +1065,7 @@ void gpio_chess_logic_isr(){
                             uint8_t new_y = pieces_taken_w / 8;
                             uint8_t new_position = new_x << 4 | new_y;
                             packet = encode_data(current_position, new_position);
-                            ///rf_data_send(pio, packet, logic_tx_sm);
+                            rf_send_data(packet);
                             wait_time = 1000 * (4.375 * (abs(new_x - en_pass_x) + abs(new_y-en_pass_y)));
                             busy_wait_ms(wait_time);
                             draw_captured(board[en_pass_y][en_pass_x], pieces_taken_w * 0.3, 8, false);
@@ -1119,7 +1078,7 @@ void gpio_chess_logic_isr(){
                             uint8_t new_y = 7 - pieces_taken_b / 8;
                             uint8_t new_position = new_x << 4 | new_y;
                             packet = encode_data(current_position, new_position);
-                            ir_send(pio, packet, logic_tx_sm);
+                            rf_send_data(packet);
                             wait_time = 1000 * (4.375 * (abs(new_x - en_pass_x) + abs(new_y-en_pass_y)));
                             busy_wait_ms(wait_time);
                             draw_captured(board[en_pass_y][en_pass_x], pieces_taken_b * 0.3, -1, false);
@@ -1145,22 +1104,20 @@ void gpio_chess_logic_isr(){
                     }
                     if((right_w_castle || left_w_castle) && !current_move){
                         if(selected_square[0] == 6){
-                            busy_wait_ms(20000);
                             current_position = (7) << 4 | (0);
                             new_position = (5) << 4 | (0 & 0xF);
                             packet = encode_data(current_position, new_position);
-                            ir_send(pio, packet, logic_tx_sm);
+                            rf_send_data(packet);
                             board[7][5] = WHITE_ROOK;
                             board[7][7] = 0;
                             right_w_castle = false;
                             left_w_castle = false;
                         }
                         else if(selected_square[0] == 2){
-                            busy_wait_ms(23000);
                             current_position = (0) << 4 | (0);
                             new_position = (3) << 4 | (0 & 0xF);
                             packet = encode_data(current_position, new_position);
-                            ir_send(pio, packet, logic_tx_sm);
+                            rf_send_data(packet);
                             board[7][3] = WHITE_ROOK;
                             board[7][0] = 0;
                             left_w_castle = false;
@@ -1169,22 +1126,20 @@ void gpio_chess_logic_isr(){
                     }
                     if((right_b_castle || left_b_castle) && current_move){
                         if(selected_square[0] == 6){
-                            busy_wait_ms(20000);
                             current_position = (7) << 4 | (7);
                             new_position = (5) << 4 | (7 & 0xF);
                             packet = encode_data(current_position, new_position);
-                            ir_send(pio, packet, logic_tx_sm);
+                            rf_send_data(packet);
                             board[0][5] = BLACK_ROOK;
                             board[0][7] = 0;
                             right_b_castle = false;
                             left_b_castle = false;
                         }
                         else if(selected_square[0] == 2){
-                            busy_wait_ms(23000);
                             current_position = (0) << 4 | (7);
                             new_position = (5) << 4 | (0 & 0xF);
                             packet = encode_data(current_position, new_position);
-                            ir_send(pio, packet, logic_tx_sm);
+                            rf_send_data(packet);
                             board[0][3] = BLACK_ROOK;
                             board[0][0] = 0;
                             left_b_castle = false;
