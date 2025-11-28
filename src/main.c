@@ -47,50 +47,45 @@ int main()
         // rf_send_data(data_send);
         // data_send += 1;
         // rx_data = data_recieve(rx_sm, pio);
-        packet_data.addr = (data_read >> 24 & 0xFF);
+        packet_data.addr = (data_read >> 24 & 0xFF); //{1'b0, x[2:0], 1'b0, y[2:0]}
         packet_data.cmd = (data_read >> 16 & 0xFF);
         packet_data.data1 = (data_read >> 8 & 0xFF);
         packet_data.data2 = (data_read >> 0 & 0xFF);
-
-        switch (packet_data.cmd) {
-            //direct move
-            case 0x0000: {
-                if(ms.x_pos << 4 | ms.y_pos == packet_data.addr) {
+        if (ms.x_pos << 4 | ms.y_pos == packet_data.addr) {
+            switch (packet_data.cmd) {
+                //direct move
+                case 0x0000: {
                     move_to(&ms, DIRECT, packet_data.data1 & 0xF, packet_data.data2 & 0xF);
                 }
-            }
-            //on-grid move
-            case 0x0001: {
-                if(ms.x_pos << 4 | ms.y_pos == packet_data.addr) {
+                //on-grid move
+                case 0x0001: {
                     move_to(&ms, ON_GRID, packet_data.data1 & 0xF, packet_data.data2 & 0xF);
                 }
-            }
-            //off-grid move
-            case 0x0002: {
-                if(ms.x_pos << 4 | ms.y_pos == packet_data.addr) {
+                //off-grid move
+                case 0x0002: {
                     move_to(&ms, OFF_GRID, packet_data.data1 & 0xF, packet_data.data2 & 0xF);
                 }
-            }
-            //LED solid
-            case 0x0003: {
-                //{data1, data2} = {red[4:0], green[5:0]], blue[4:0]}
-                //use PWM
-            }
-            //LED slow blink (2 Hz)
-            case 0x0004: {
-                //{data1, data2} = {red[4:0], green[5:0]], blue[4:0]}
-                //use PWM
-            }
-            //LED fast blink (4 Hz)
-            case 0x0005: {
-                //{data1, data2} = {red[4:0], green[5:0]], blue[4:0]}
-                //use PWM
-            }
-            //Manual movement
-            case 0x0006: {
-                //right wheel speed = signed'(data1)
-                //left wheel speed = signed'(data2)
-                //speed as a percentage of max speed
+                //LED solid
+                case 0x0003: {
+                    //{data1, data2} = {red[4:0], green[5:0]], blue[4:0]}
+                    //use PWM
+                }
+                //LED slow blink (2 Hz)
+                case 0x0004: {
+                    //{data1, data2} = {red[4:0], green[5:0]], blue[4:0]}
+                    //use PWM
+                }
+                //LED fast blink (4 Hz)
+                case 0x0005: {
+                    //{data1, data2} = {red[4:0], green[5:0]], blue[4:0]}
+                    //use PWM
+                }
+                //Manual movement
+                case 0x0006: {
+                    //right wheel speed = signed'(data1)
+                    //left wheel speed = signed'(data2)
+                    //speed as a percentage of max speed
+                }
             }
         }
 
