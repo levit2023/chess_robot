@@ -1,6 +1,7 @@
 #include <utils.h>
 #include <movement.h>
 #include "rf.h"
+#include <led.h>
 #include "hardware/spi.h"
 //0x(W/B)(piece) ex: 0x00 is wite castle
 #define IDENT piece //IR rx address
@@ -41,6 +42,9 @@ int main()
     rf_recieve_config();
     rf_gpio_init_rx();
 
+    led_init_pwm();
+    led_init_isr();
+
     while(true){
         data_read = 0;
         data_read = rf_read_data();
@@ -72,18 +76,21 @@ int main()
                 case 0x0003: {
                     //{data1, data2} = {red[4:0], green[5:0]], blue[4:0]}
                     //use PWM
+                    led_config(LED_SOLID, packet_data.data1, packet_data.data2);
                     break;
                 }
                 //LED slow blink (2 Hz)
                 case 0x0004: {
                     //{data1, data2} = {red[4:0], green[5:0]], blue[4:0]}
                     //use PWM
+                    led_config(LED_SLOW, packet_data.data1, packet_data.data2);
                     break;
                 }
                 //LED fast blink (4 Hz)
                 case 0x0005: {
                     //{data1, data2} = {red[4:0], green[5:0]], blue[4:0]}
                     //use PWM
+                    led_config(LED_FAST, packet_data.data1, packet_data.data2);
                     break;
                 }
                 //Manual movement
@@ -91,6 +98,7 @@ int main()
                     //right wheel speed = signed'(data1)
                     //left wheel speed = signed'(data2)
                     //speed as a percentage of max speed
+                    stepper_manual((int8_t)packet_data.data1, (int8_t)packet_data.data2);
                     break;
                 }
             }

@@ -51,6 +51,10 @@ bool stepper_idle; // low whenever movement is in progress
 
 stepper_state_t state; // accel, cruise, decel
 
+// for manual movement
+double manual_right_speed = 0;
+double manual_left_speed = 0;
+
 void stepper_init_pins() {
     for (int i = 0; i < 4; i++) {
         gpio_set_dir(right_coil_pins[i], true); // output
@@ -66,11 +70,25 @@ void stepper_init_pins() {
 void stepper_init_timer() {
     // initialize TIMER0 to fire ALARM0
     hw_set_bits(&timer0_hw->inte, 1u << 0);
-    irq_set_exclusive_handler(TIMER0_IRQ_0, stepper_isr);
+    irq_set_exclusive_handler(TIMER0_IRQ_0, stepper_steps_isr);
     irq_set_enabled(TIMER0_IRQ_0, true);
+
+    // initialize TIMER0 to fire ALARM1
+    hw_set_bits(&timer0_hw->inte, 1u << 1);
+    irq_set_exclusive_handler(TIMER0_IRQ_1, stepper_manual_right_isr);
+    irq_set_enabled(TIMER0_IRQ_1, true);
+
+    // initialize TIMER0 to fire ALARM2
+    hw_set_bits(&timer0_hw->inte, 1u << 2);
+    irq_set_exclusive_handler(TIMER0_IRQ_2, stepper_manual_left_isr);
+    irq_set_enabled(TIMER0_IRQ_2, true);
 }
 
 void stepper_steps(direction_t dir, int steps) {
+    // disarm ALARM1 and ALARM2 (disarm the manual mode)
+    hw_set_bits(&timer0_hw->alarm, 1u << 1);
+    hw_set_bits(&timer0_hw->alarm, 1u << 2);
+
     // set globals
     direction = dir;
     total_steps = steps;
@@ -82,10 +100,10 @@ void stepper_steps(direction_t dir, int steps) {
     state = STEPPER_ACCEL;
     
     // set alarm time
-    timer0_hw->alarm[0] = s_to_us(1.0/max_speed) + timer0_hw->timerawl; 
+    timer0_hw->alarm[0] = s_to_us(1.0/max_speed) + timer0_hw->timerawl;
 }
 
-void stepper_isr() {
+void stepper_steps_isr() {
     // ack interrupt for ALARM0 TIMER0
     hw_clear_bits(&timer0_hw->intr, 1u << 0);
 
@@ -108,7 +126,7 @@ void stepper_isr() {
         gpio_put(right_coil_pins[i], (stepper_sequence[right_step_idx] >> i) & 0x1);
         gpio_put(left_coil_pins[i], (stepper_sequence[left_step_idx] >> i) & 0x1);
     }
-    step_count++; //moved to here
+    step_count++;
 
     // state machine for accel, cruise, decel
     switch (state) {
@@ -149,4 +167,53 @@ void stepper_isr() {
             gpio_put(left_coil_pins[i], (0x0 >> i) & 0x1);
         }
     }
+}
+
+void stepper_manual_right_isr() {
+    // ack interrupt for ALARM1 TIMER0
+    hw_clear_bits(&timer0_hw->intr, 1u << 1);
+
+    // step motor by 1 step
+    // right motor forward == clockwise
+    if (manual_right_speed > 0) right_step_idx = (right_step_idx + 1) % 8;
+    else if (manual_right_speed < 0) right_step_idx = (right_step_idx - 1 + 8) % 8;
+    
+    // set pins according to stepper_sequence
+    for (int i = 0; i < 4; i++) {
+        gpio_put(right_coil_pins[i], (stepper_sequence[right_step_idx] >> i) & 0x1);
+    }
+
+    // set alarm time
+    timer0_hw->alarm[1] = s_to_us(1.0/fabs(manual_right_speed)) + timer0_hw->timerawl;
+}
+
+void stepper_manual_left_isr() {
+    // ack interrupt for ALARM2 TIMER0
+    hw_clear_bits(&timer0_hw->intr, 1u << 2);
+
+    // step motor by 1 step
+    // left motor forward == counterclockwise
+    if (manual_left_speed > 0) left_step_idx = (left_step_idx - 1 + 8) % 8;
+    else if (manual_left_speed < 0) left_step_idx = (left_step_idx + 1) % 8;
+    
+    // set pins according to stepper_sequence
+    for (int i = 0; i < 4; i++) {
+        gpio_put(left_coil_pins[i], (stepper_sequence[left_step_idx] >> i) & 0x1);
+    }
+
+    // set alarm time
+    timer0_hw->alarm[2] = s_to_us(1.0/fabs(manual_left_speed)) + timer0_hw->timerawl;
+}
+
+void stepper_manual(int8_t data1, int8_t data2) {
+    // disarm ALARM0 (disarm the auto steps mode)
+    hw_set_bits(&timer0_hw->alarm, 1u << 0);
+
+    // manual speed as a percentage of max speed
+    manual_right_speed = max_speed * data1 / (double)0x7F;
+    manual_left_speed  = max_speed * data2 / (double)0x7F;
+
+    // set alarm time
+    timer0_hw->alarm[1] = s_to_us(1.0/fabs(manual_right_speed)) + timer0_hw->timerawl;
+    timer0_hw->alarm[2] = s_to_us(1.0/fabs(manual_left_speed))  + timer0_hw->timerawl;
 }
