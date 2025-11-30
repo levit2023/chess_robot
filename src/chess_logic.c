@@ -1043,12 +1043,12 @@ void gpio_chess_logic_isr(){
 
                     uint8_t current_position = (chosen_coordinates[0]) << 4 | (7-chosen_coordinates[1]);
                     //printf("%02x\n", current_position);
-                    uint16_t new_position = (selected_square[0] & 0xFF) << 8 | ((7-selected_square[1]) & 0xFF);
+                    uint8_t new_position = (selected_square[0] & 0xF) << 4 | ((7-selected_square[1]) & 0xF);
                     //printf("%02x\n", new_position);
-                    if(chosen_piece == WHITE_KNIGHT || chosen_piece == BLACK_KNIGHT){
-                        command = 0x02;
-                    }
-                    uint32_t packet = current_position << 24 | command << 16 | new_position;
+                    uint32_t packet = current_position << 24 | //addr
+                                                0x0000 << 16 | //TODO: command type
+                            (selected_square[0] & 0xF) << 8  | //x position
+                        ((7-selected_square[1]) & 0xF) << 0  ; //y position
                     //printf("%02x\n", packet);
                     rf_send_data(packet);
                     //uint32_t recieved_data;
