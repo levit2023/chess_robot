@@ -51,7 +51,7 @@ int main()
         packet_data.cmd = (data_read >> 16 & 0xFF);
         packet_data.data1 = (data_read >> 8 & 0xFF);
         packet_data.data2 = (data_read >> 0 & 0xFF);
-        if (ms.x_pos << 4 | ms.y_pos == packet_data.addr) {
+        if ((ms.x_pos << 4 | ms.y_pos) == packet_data.addr) {
             switch (packet_data.cmd) {
                 //direct move
                 case 0x0000: {
