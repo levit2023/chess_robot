@@ -56,35 +56,42 @@ int main()
                 //direct move
                 case 0x0000: {
                     move_to(&ms, DIRECT, packet_data.data1 & 0xF, packet_data.data2 & 0xF);
+                    break;
                 }
                 //on-grid move
                 case 0x0001: {
                     move_to(&ms, ON_GRID, packet_data.data1 & 0xF, packet_data.data2 & 0xF);
+                    break;
                 }
                 //off-grid move
                 case 0x0002: {
                     move_to(&ms, OFF_GRID, packet_data.data1 & 0xF, packet_data.data2 & 0xF);
+                    break;
                 }
                 //LED solid
                 case 0x0003: {
                     //{data1, data2} = {red[4:0], green[5:0]], blue[4:0]}
                     //use PWM
+                    break;
                 }
                 //LED slow blink (2 Hz)
                 case 0x0004: {
                     //{data1, data2} = {red[4:0], green[5:0]], blue[4:0]}
                     //use PWM
+                    break;
                 }
                 //LED fast blink (4 Hz)
                 case 0x0005: {
                     //{data1, data2} = {red[4:0], green[5:0]], blue[4:0]}
                     //use PWM
+                    break;
                 }
                 //Manual movement
                 case 0x0006: {
                     //right wheel speed = signed'(data1)
                     //left wheel speed = signed'(data2)
                     //speed as a percentage of max speed
+                    break;
                 }
             }
         }
