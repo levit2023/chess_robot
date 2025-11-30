@@ -5,19 +5,18 @@
 
 #define PWM_PERIOD 10000
 
-#define SLOW_FREQ_HZ 2.0
-#define FAST_FREQ_HZ 4.0
+#define SLOW_FREQ_HZ 1.0
+#define FAST_FREQ_HZ 2.0
 
 #define RGB_RED 8
 #define RGB_GREEN 9
 #define RGB_BLUE 10
-static const uint8_t rgb_pins[3] = {RGB_RED, RGB_GREEN, RGB_BLUE};
+static const uint8_t rgb_pins[3] = {RGB_BLUE, RGB_GREEN, RGB_RED};
 
 static double rgb_scaler[3] = {0};
 
 static double start_time; // to set phase of blinking, to start from "off"
-static double freq; // blink frequency (Hz)
-static bool solid;
+static led_mode_t led_mode;
 
 void led_init_pwm() {
     for (int i = 0; i < 3; i++) {
@@ -51,15 +50,19 @@ void led_isr() {
         // ack interrupt
         pwm_clear_irq(slice_num);
 
+        double freq = 0.0;
+        if      (led_mode == LED_SLOW) freq = SLOW_FREQ_HZ;
+        else if (led_mode == LED_FAST) freq = FAST_FREQ_HZ;
+
         // Set duty cycle based on triangle-wave pattern
         // where it is f(t) = 2A/T times (t or T-t)
         double blink_period = 1.0/freq;
         double duty_cycle = fmod(us_to_s(timer0_hw->timerawl) - start_time, blink_period); // t, elapsed time within period
         if (duty_cycle > (blink_period / 2.0)) duty_cycle = blink_period - duty_cycle; // T - t, downslope for second half of period
         duty_cycle *= 2 / blink_period; // scale by 2/T
-        duty_cycle *= rgb_scaler[i]; // scale by A (rgb scaler)
 
-        if (solid) duty_cycle = 1.0; // always full duty cycle during solid mode
+        if (led_mode == LED_SOLID) duty_cycle = 1.0; // always full duty cycle during solid mode
+        duty_cycle *= rgb_scaler[i]; // scale by A (rgb scaler)
 
         // set the chosen color's duty cycle (duty cycle from 0.0 to 1.0)
         // counter_compare = current period (top) * duty_cycle
@@ -90,7 +93,9 @@ void led_init_isr() {
     }
 }
 
-void led_config(led_mode_t led_mode, uint8_t data1, uint8_t data2) {
+void led_config(led_mode_t mode, uint8_t data1, uint8_t data2) {
+    led_mode = mode;
+
     // {data1, data2} = {red[4:0], green[5:0]], blue[4:0]}
     uint16_t data = (data1 << 8) | data2;
 
@@ -99,11 +104,7 @@ void led_config(led_mode_t led_mode, uint8_t data1, uint8_t data2) {
     rgb_scaler[1] = ((data >>  5) & 0x3F) / (double)0x3F;
     rgb_scaler[2] = ((data >>  0) & 0x1F) / (double)0x1F;
 
+    // printf("rgb %f, %f, %f\n", rgb_scaler[0], rgb_scaler[1], rgb_scaler[2]);
+
     start_time = us_to_s(timer0_hw->timerawl);
-
-    freq = 0.0;
-    if (led_mode == LED_FAST) freq = FAST_FREQ_HZ;
-    if (led_mode == LED_SLOW) freq = SLOW_FREQ_HZ;
-
-    solid = (led_mode == LED_SOLID);
 }

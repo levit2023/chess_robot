@@ -1,5 +1,6 @@
 #include <utils.h>
 #include <movement.h>
+#include <stepper.h>
 #include "rf.h"
 #include <led.h>
 #include "hardware/spi.h"
@@ -45,12 +46,42 @@ int main()
     led_init_pwm();
     led_init_isr();
 
+    // int test_idx = 0;
+
+    sleep_ms(2000); // for printing
+
     while(true){
         data_read = 0;
         data_read = rf_read_data();
         // rf_send_data(data_send);
         // data_send += 1;
         // rx_data = data_recieve(rx_sm, pio);
+
+        // // led and manual stepping test with packets
+        // uint8_t curr_addr = ms.x_pos << 4 | ms.y_pos;
+        // uint32_t packet_vector[14] = {0};
+        // packet_vector[0] = (curr_addr << 24) | (LED_SLOW  << 16) | (0xFF << 8) | (0xFF << 0); // slow white
+        // packet_vector[1] = (curr_addr << 24) | (LED_SLOW  << 16) | (0x00 << 8) | (0x00 << 0); // off
+        // packet_vector[2] = (curr_addr << 24) | (LED_FAST  << 16) | (0xF8 << 8) | (0x00 << 0); // fast red
+        // packet_vector[3] = (curr_addr << 24) | (LED_SLOW  << 16) | (0xFF << 8) | (0xE0 << 0); // slow yellow
+        // packet_vector[4] = (curr_addr << 24) | (LED_SLOW  << 16) | (0x07 << 8) | (0xE0 << 0); // slow green
+        // // packet_vector[5] = 0xFFFFFFFF;
+        // packet_vector[5] = (curr_addr << 24) | (0x06      << 16) | (((int8_t)-50 & 0xFF) << 8) | (((int8_t)127 & 0xFF) << 0); // manual step
+        // packet_vector[6] = (curr_addr << 24) | (LED_FAST  << 16) | (0xF8 << 8) | (0x1F << 0); // fast magenta
+        // // packet_vector[7] = 0xFFFFFFFF;
+        // packet_vector[7] = (curr_addr << 24) | (0x06      << 16) | (((int8_t)50 & 0xFF) << 8) | (((int8_t)-100 & 0xFF) << 0); // manual step
+        // packet_vector[8] = (curr_addr << 24) | (LED_SOLID << 16) | (0x00 << 8) | (0x1F << 0); // solid blue
+        // packet_vector[9] = (curr_addr << 24) | (0x00      << 16) | (0x02 << 8) | (0x01 << 0); // direct move
+        // packet_vector[10] = (curr_addr << 24) | (LED_SOLID << 16) | (0xF8 << 8) | (0x05 << 0); // solid something magentaish
+        // packet_vector[11] = (curr_addr << 24) | (0x06      << 16) | (((int8_t)100 & 0xFF) << 8) | (((int8_t)-50 & 0xFF) << 0); // manual step
+        // packet_vector[12] = (curr_addr << 24) | (LED_SLOW  << 16) | (0x07 << 8) | (0xE0 << 0); // slow green
+        // packet_vector[13] = 0xFFFFFFFF;
+        // data_read = 0xFFFFFFFF;
+        // int interval = 5;
+        // if ((test_idx % interval) == 0) data_read = packet_vector[test_idx / interval];
+        // // printf(" | Packet %d: 0x%X\n", test_idx / interval, data_read);
+        // if ((test_idx / interval) < 13) test_idx++;
+
         packet_data.addr = (data_read >> 24 & 0xFF); //{1'b0, x[2:0], 1'b0, y[2:0]}
         packet_data.cmd = (data_read >> 16 & 0xFF);
         packet_data.data1 = (data_read >> 8 & 0xFF);
@@ -58,51 +89,67 @@ int main()
         if ((ms.x_pos << 4 | ms.y_pos) == packet_data.addr) {
             switch (packet_data.cmd) {
                 //direct move
-                case 0x0000: {
+                case 0x00: {
+                    stepper_manual(false, 0, 0);
                     move_to(&ms, DIRECT, packet_data.data1 & 0xF, packet_data.data2 & 0xF);
                     break;
                 }
                 //on-grid move
-                case 0x0001: {
+                case 0x01: {
+                    stepper_manual(false, 0, 0);
                     move_to(&ms, ON_GRID, packet_data.data1 & 0xF, packet_data.data2 & 0xF);
                     break;
                 }
                 //off-grid move
-                case 0x0002: {
+                case 0x02: {
+                    stepper_manual(false, 0, 0);
                     move_to(&ms, OFF_GRID, packet_data.data1 & 0xF, packet_data.data2 & 0xF);
                     break;
                 }
                 //LED solid
-                case 0x0003: {
+                case 0x03: {
                     //{data1, data2} = {red[4:0], green[5:0]], blue[4:0]}
                     //use PWM
                     led_config(LED_SOLID, packet_data.data1, packet_data.data2);
                     break;
                 }
                 //LED slow blink (2 Hz)
-                case 0x0004: {
+                case 0x04: {
                     //{data1, data2} = {red[4:0], green[5:0]], blue[4:0]}
                     //use PWM
                     led_config(LED_SLOW, packet_data.data1, packet_data.data2);
                     break;
                 }
                 //LED fast blink (4 Hz)
-                case 0x0005: {
+                case 0x05: {
                     //{data1, data2} = {red[4:0], green[5:0]], blue[4:0]}
                     //use PWM
                     led_config(LED_FAST, packet_data.data1, packet_data.data2);
                     break;
                 }
                 //Manual movement
-                case 0x0006: {
+                case 0x06: {
                     //right wheel speed = signed'(data1)
                     //left wheel speed = signed'(data2)
                     //speed as a percentage of max speed
-                    stepper_manual((int8_t)packet_data.data1, (int8_t)packet_data.data2);
+                    stepper_manual(true, (int8_t)packet_data.data1, (int8_t)packet_data.data2);
                     break;
                 }
+                case 0xFF: break; // NOP
             }
         }
+
+        // // led and manual stepping test
+        // switch (test_idx) {
+        //     case 10: led_config(LED_SLOW, 0xFF, 0xFF); break; // slow white
+        //     case 20: led_config(LED_SLOW, 0x00, 0x00); break; // off
+        //     case 30: led_config(LED_FAST, 0xF8, 0x00); break; // fast red
+        //     case 40: led_config(LED_SLOW, 0xFF, 0xE0); break; // slow yellow
+        //     case 50: led_config(LED_FAST, 0x07, 0xE0); break; // fast green
+        //     case 60: led_config(LED_SOLID, 0x00, 0x1F); break; // solid blue
+        //     case 70: stepper_manual((int8_t)-50, (int8_t)127); break;
+        // }
+        // test_idx++;
 
         // printf("\r\tRecieved packet: %02x\n", data_read);
         // printf("\r\tRecieved currX: %02x\n", move_data.curr_x);

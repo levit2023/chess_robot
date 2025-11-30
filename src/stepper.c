@@ -4,6 +4,7 @@
 #include "hardware/timer.h"
 #include "hardware/irq.h"
 #include "movement.h"
+#include "stepper.h"
 #include "utils.h"
 #include <math.h>
 
@@ -54,6 +55,7 @@ stepper_state_t state; // accel, cruise, decel
 // for manual movement
 double manual_right_speed = 0;
 double manual_left_speed = 0;
+bool manual_enable = 0;
 
 void stepper_init_pins() {
     for (int i = 0; i < 4; i++) {
@@ -86,8 +88,8 @@ void stepper_init_timer() {
 
 void stepper_steps(direction_t dir, int steps) {
     // disarm ALARM1 and ALARM2 (disarm the manual mode)
-    hw_set_bits(&timer0_hw->alarm, 1u << 1);
-    hw_set_bits(&timer0_hw->alarm, 1u << 2);
+    hw_set_bits((io_rw_32)&timer0_hw->alarm, 1u << 1);
+    hw_set_bits((io_rw_32)&timer0_hw->alarm, 1u << 2);
 
     // set globals
     direction = dir;
@@ -183,8 +185,19 @@ void stepper_manual_right_isr() {
         gpio_put(right_coil_pins[i], (stepper_sequence[right_step_idx] >> i) & 0x1);
     }
 
+    // auto-disable after 2 seconds
+    if (us_to_s(timer0_hw->timerawl) >= (phase_start_time + 2.0)) manual_enable = false;
+
+    // disable motors
+    if (!manual_enable) {
+        for (int i = 0; i < 4; i++) {
+            gpio_put(right_coil_pins[i], 0);
+            gpio_put(left_coil_pins[i],  0);
+        }
+    }
+
     // set alarm time
-    timer0_hw->alarm[1] = s_to_us(1.0/fabs(manual_right_speed)) + timer0_hw->timerawl;
+    if (manual_enable) timer0_hw->alarm[1] = s_to_us(1.0/fabs(manual_right_speed)) + timer0_hw->timerawl;
 }
 
 void stepper_manual_left_isr() {
@@ -201,19 +214,47 @@ void stepper_manual_left_isr() {
         gpio_put(left_coil_pins[i], (stepper_sequence[left_step_idx] >> i) & 0x1);
     }
 
+    // auto-disable after 2 seconds
+    if (us_to_s(timer0_hw->timerawl) >= (phase_start_time + 2.0)) manual_enable = false;
+
+    // disable motors
+    if (!manual_enable) {
+        for (int i = 0; i < 4; i++) {
+            gpio_put(right_coil_pins[i], 0);
+            gpio_put(left_coil_pins[i],  0);
+        }
+    }
+
     // set alarm time
-    timer0_hw->alarm[2] = s_to_us(1.0/fabs(manual_left_speed)) + timer0_hw->timerawl;
+    if (manual_enable) timer0_hw->alarm[2] = s_to_us(1.0/fabs(manual_left_speed)) + timer0_hw->timerawl;
 }
 
-void stepper_manual(int8_t data1, int8_t data2) {
+void stepper_manual(bool en, int8_t data1, int8_t data2) {
     // disarm ALARM0 (disarm the auto steps mode)
-    hw_set_bits(&timer0_hw->alarm, 1u << 0);
+    // hw_set_bits(&timer0_hw->alarm, 1u << 0);
+
+    manual_enable = en;
 
     // manual speed as a percentage of max speed
-    manual_right_speed = max_speed * data1 / (double)0x7F;
-    manual_left_speed  = max_speed * data2 / (double)0x7F;
+    manual_right_speed = max_speed * (data1 / 128.0);
+    manual_left_speed  = max_speed * (data2 / 128.0);
+
+    // clamp
+    double clamp = 0.7;
+    if (manual_right_speed >= (clamp * max_speed)) manual_right_speed = (clamp * max_speed);
+    if (manual_left_speed  >= (clamp * max_speed)) manual_left_speed  = (clamp * max_speed);
+
+    phase_start_time = us_to_s(timer0_hw->timerawl);
+
+    // disable motors
+    if (!manual_enable) {
+        for (int i = 0; i < 4; i++) {
+            gpio_put(right_coil_pins[i], 0);
+            gpio_put(left_coil_pins[i],  0);
+        }
+    }
 
     // set alarm time
-    timer0_hw->alarm[1] = s_to_us(1.0/fabs(manual_right_speed)) + timer0_hw->timerawl;
-    timer0_hw->alarm[2] = s_to_us(1.0/fabs(manual_left_speed))  + timer0_hw->timerawl;
+    if (manual_enable && (manual_right_speed != 0.0)) timer0_hw->alarm[1] = s_to_us(1.0/fabs(manual_right_speed)) + timer0_hw->timerawl;
+    if (manual_enable && (manual_right_speed != 0.0)) timer0_hw->alarm[2] = s_to_us(1.0/fabs(manual_left_speed))  + timer0_hw->timerawl;
 }
