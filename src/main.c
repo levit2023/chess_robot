@@ -21,10 +21,12 @@ const int RECIEVERF_CE = 16;
 uint tx_gpio = 18;       // choose which GPIO pin is connected to the IR LED
 uint rx_gpio = 12; 
 
+int data_read = 0xFFFFFFFF;
+
 int main()
 {
     move_state_t ms;
-    chess_piece_t piece = W_ROOK_A; //starting position
+    chess_piece_t piece = B_KING; //starting position
     // uint32_t rx_data;
     rf_data_t packet_data;
     stepper_init_pins();
@@ -33,8 +35,6 @@ int main()
     // stdio_init_all();
     stdio_usb_init();
 
-    int data_read = 0;
-
     // rf_send_init_pins();
     // rf_send_config();
     // rf_gpio_init_tx();
@@ -42,6 +42,7 @@ int main()
     rf_read_init_pins();
     rf_recieve_config();
     rf_gpio_init_rx();
+    rf_init_recieve_irq();
 
     led_init_pwm();
     led_init_isr();
@@ -51,8 +52,6 @@ int main()
     sleep_ms(2000); // for printing
 
     while(true){
-        data_read = 0;
-        data_read = rf_read_data();
         // rf_send_data(data_send);
         // data_send += 1;
         // rx_data = data_recieve(rx_sm, pio);
@@ -169,10 +168,10 @@ int main()
         //         printf("\r\tPass Parity Error\n: %02x", move_data.piece);
         //     }
         // // }
-        sleep_ms(200);
-        // data_read = rf_read_data();
-        printf("\r\tRecieved: %08x", data_read);
-        fflush(stdout);
+        // sleep_ms(200);
+        // // data_read = rf_read_data();
+        // printf("\r\tRecieved: %08x", data_read);
+        // fflush(stdout);
 
     }
 

@@ -2,7 +2,6 @@
 #define RF_H
 #include "hardware/spi.h"
 
-
 void send_spi_cmd(spi_inst_t* spi, uint16_t value, int size);
 void send_spi_data(spi_inst_t* spi, uint16_t value);
 void rf_send_init_pins();
@@ -17,6 +16,8 @@ void rf_gpio_init_tx();
 void rf_gpio_init_rx();
 void rf_bit_bang_tx(int data, int data_size);
 int rf_bit_bang_rx(int data, int data_size);
+void rf_init_recieve_irq();
+void recieve_isr();
 
 typedef struct rf_data{
     uint8_t addr;
