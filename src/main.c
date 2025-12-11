@@ -26,7 +26,7 @@ int data_read = 0xFFFFFFFF;
 int main()
 {
     move_state_t ms;
-    chess_piece_t piece = B_KING; //starting position
+    chess_piece_t piece = B_PAWN_F; //starting position
     // uint32_t rx_data;
     rf_data_t packet_data;
     stepper_init_pins();
@@ -85,7 +85,7 @@ int main()
         packet_data.cmd = (data_read >> 16 & 0xFF);
         packet_data.data1 = (data_read >> 8 & 0xFF);
         packet_data.data2 = (data_read >> 0 & 0xFF);
-        if ((ms.x_pos << 4 | ms.y_pos) == packet_data.addr) {
+        if (((ms.x_pos << 4 | ms.y_pos) == packet_data.addr) || packet_data.cmd == 0xFF) {
             switch (packet_data.cmd) {
                 //direct move
                 case 0x00: {
@@ -134,7 +134,9 @@ int main()
                     stepper_manual(true, (int8_t)packet_data.data1, (int8_t)packet_data.data2);
                     break;
                 }
-                case 0xFF: break; // NOP
+                case 0xFF: 
+                    move_init(&ms, piece);
+                    break; // NOP
             }
         }
 

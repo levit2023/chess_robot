@@ -12,9 +12,12 @@ struct movement path_array[9] = {0}; //initialize to all 0
 struct movement *find_path(pathfind_mode_t mode, int pos_x, int pos_y, int set_x, int set_y){
     double WHEEL_CIRCUMFERENCE = M_PI * WHEEL_DIAMETER; //distance traveled in one rotation
     double TURN_CIRCUMFERENCE = M_PI * WHEEL_SEPARATION; //distance the wheels have to move to make a full revolution
-
+    for(int i = 0; i < 9; i++){
+        path_array[i].rot = 0;
+    }
     switch (mode) {
         case DIRECT: { //verified
+            
             double dx = (set_x - pos_x) * GRID_SIZE;
             double dy = (set_y - pos_y) * GRID_SIZE;
 
