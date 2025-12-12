@@ -1006,13 +1006,15 @@ void led_all_side(bool side, uint16_t color){
         for(int j = 0; j < 8; j++){
             if(side && board[i][j] > 6) {
                 uint8_t command = 0x5;
-                uint8_t address = (i & 0xF) << 4 | ((7 - j) & 0xF);
+                uint8_t address = (j & 0xF) << 4 | ((7 - i) & 0xF);
                 rf_send_data(address << 24 | command << 16 | color);
+                busy_wait_ms(5);
             }
             else if(!side && board[i][j] < 7 && board[i][j] != 0){
                 uint8_t command = 0x5;
-                uint8_t address = (i & 0xF) << 4 | ((7 - j) & 0xF);
+                uint8_t address = (j & 0xF) << 4 | ((7 - i) & 0xF);
                 rf_send_data(address << 24 | command << 16 | color);
+                busy_wait_ms(5);
             }
         }
     }
@@ -1183,7 +1185,7 @@ void gpio_chess_logic_isr(){
                         else if(selected_square[0] == 2){
                             command = 0x02;
                             current_position = (0) << 4 | (7);
-                            new_position = (5) << 4 | (0 & 0xF);
+                            new_position = (5) << 4 | (7 & 0xF);
                             packet = current_position << 24 | command << 16 | new_position;
                             rf_send_data(packet);
                             board[0][3] = BLACK_ROOK;
