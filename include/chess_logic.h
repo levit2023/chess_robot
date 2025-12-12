@@ -17,6 +17,7 @@ void legal_move_generator(bool checkmate_assessment);
 void init_spi_lcd();
 bool stalemate();
 bool checkmate();
+void led_all_side(bool side, uint16_t color);
 void gpio_chess_logic_isr();
 void adc_chess_logic_isr();
 void init_gpio_chess_logic();

@@ -11,13 +11,13 @@
 #include "rf.h"
 
 #define PIN_SDI    19
-#define PIN_CS     17
-#define PIN_SCK    18
-#define PIN_DC     16
-#define PIN_nRESET 15
+#define PIN_CS     21
+#define PIN_SCK    22
+#define PIN_DC     20
+#define PIN_nRESET 16
 
-#define PIN_ADC0 26
-#define PIN_ADC1 27
+#define PIN_ADC0 28
+#define PIN_ADC1 29
 
 uint16_t selected_piece;
 uint16_t old_piece;
@@ -53,11 +53,11 @@ PIO pio = pio0;
 uint tx_gpio = 27;
 uint rx_gpio = 2;
 
-const int SPI_SENDRF_SCK = 46;
-const int SPI_SENDRF_CSn = 45;
-const int SPI_SENDRF_TX = 47;
-const int SPI_SENDRF_RX = 44;
-const int SENDRF_CE = 35;
+const int SPI_SENDRF_SCK = 26;
+const int SPI_SENDRF_CSn = 25;
+const int SPI_SENDRF_TX = 27;
+const int SPI_SENDRF_RX = 24;
+const int SENDRF_CE = 17;
 
 
 
@@ -1001,9 +1001,27 @@ bool checkmate(){
     return true;
 }
 
+void led_all_side(bool side, uint16_t color){
+    for(int i = 0; i < 8; i++){
+        for(int j = 0; j < 8; j++){
+            if(side && board[i][j] > 6) {
+                uint8_t command = 0x5;
+                uint8_t address = (i & 0xF) << 4 | ((7 - j) & 0xF);
+                rf_send_data(address << 24 | command << 16 | color);
+            }
+            else if(!side && board[i][j] < 7 && board[i][j] != 0){
+                uint8_t command = 0x5;
+                uint8_t address = (i & 0xF) << 4 | ((7 - j) & 0xF);
+                rf_send_data(address << 24 | command << 16 | color);
+            }
+        }
+    }
+}
+
+bool first_move = true;
 void gpio_chess_logic_isr(){
-    if(gpio_get_irq_event_mask(13) == GPIO_IRQ_LEVEL_LOW){
-        gpio_acknowledge_irq(13, GPIO_IRQ_LEVEL_LOW);
+    if(gpio_get_irq_event_mask(23) == GPIO_IRQ_LEVEL_LOW){
+        gpio_acknowledge_irq(23, GPIO_IRQ_LEVEL_LOW);
         // if move_generation is not on, then we need to select a piece to generate moves for. 
         if((!move_generation)){
             if(selected_piece != 0){
@@ -1011,7 +1029,7 @@ void gpio_chess_logic_isr(){
                 chosen_piece = board[selected_square[1]][selected_square[0]];
                 chosen_coordinates[0] = selected_square[0];
                 chosen_coordinates[1] = selected_square[1];
-                legal_move_generator(false);
+                legal_move_generator(false); 
             }
         }
         else{
@@ -1021,26 +1039,46 @@ void gpio_chess_logic_isr(){
                     uint8_t command = 0x00;
                     int list_type = current_move ? 3 : 2;
                     move_generation = false;
+                    uint16_t data = 0b0000000000011111;
                     if(board[selected_square[1]][selected_square[0]] != 0){
+                        command = 0x4;
+                        uint8_t address = (selected_square[0] & 0xF) << 4 | ((7-selected_square[1]) & 0xF);
+                        data = 0b1111100000000000;
+                        rf_send_data(address << 24 | command << 16 | data);
+                        busy_wait_ms(5);
                         command = 0x02;
                         uint8_t new_x;
                         uint8_t new_y;
                         uint32_t packet;
                         uint8_t current_position = selected_square[0] << 4 | ((7 - selected_square[1]) & 0xF);
                         if(current_move){
-                            new_x  = 7 + ((pieces_taken_b % 8 != 0) ? pieces_taken_b % 8 : 0);
+                            new_x  = 8 + ((pieces_taken_b % 8 != 0) ? pieces_taken_b % 8 : 0);
                             new_y = 7 - pieces_taken_b / 8;
                         }
                         else{
-                            new_x  = 7 + ((pieces_taken_w % 8 != 0) ? pieces_taken_w % 8 : 0);
+                            new_x  = 8 + ((pieces_taken_w % 8 != 0) ? pieces_taken_w % 8 : 0);
                             new_y = pieces_taken_w / 8;
                         }
                         packet = current_position << 24 | command << 16 | new_x << 8 | new_y;
                         rf_send_data(packet);
                         int wait_time = 1000 * (4.375 * (abs(new_x - selected_square[0]) + abs(new_y-selected_square[1])));
                         busy_wait_ms(wait_time);
+                        command = 0x4;
+                        address = (new_x & 0xF) << 4 | ((new_y) & 0xF);
+                        data = 0;
+                        rf_send_data(address << 24 | command << 16 | data);
+                        command = 0x00;
+                        data = 0b0000011111100000;
+
                     }
 
+                    command = 0x4;
+                    uint8_t address = (chosen_coordinates[0] & 0xF) << 4 | ((7-chosen_coordinates[1]) & 0xF);
+                    //data = 0b0000000000011111;
+                    rf_send_data(address << 24 | command << 16 | data);
+
+                    busy_wait_ms(5);
+                    command = 0x0;
                     uint8_t current_position = (chosen_coordinates[0]) << 4 | (7-chosen_coordinates[1]);
                     //printf("%02x\n", current_position);
                     uint16_t new_position = (selected_square[0] & 0xFF) << 8 | ((7-selected_square[1]) & 0xFF);
@@ -1051,6 +1089,8 @@ void gpio_chess_logic_isr(){
                     uint32_t packet = current_position << 24 | command << 16 | new_position;
                     //printf("%02x\n", packet);
                     rf_send_data(packet);
+
+
                     //uint32_t recieved_data;
                     // do{
                     //     recieved_data = ir_receive(pio, logic_rx_sm);
@@ -1058,7 +1098,7 @@ void gpio_chess_logic_isr(){
                     //     busy_wait_ms(40);
                     // }
                     // while (recieved_data == 0x0F0F);
-                    int wait_time = 1000 * (4.375 * (abs(chosen_coordinates[0] - selected_square[0]) + abs(selected_square[0]-selected_square[1])));
+                    int wait_time = 1000 * (4.375 * (abs(chosen_coordinates[0] - selected_square[0]) + abs(chosen_coordinates[1]-selected_square[1])));
                     busy_wait_ms(wait_time);
                     if(selected_square[0] == en_pass_x){
                         if(!current_move && selected_square[1] + 1 == en_pass_y && chosen_piece == WHITE_PAWN && en_passant){
@@ -1165,15 +1205,23 @@ void gpio_chess_logic_isr(){
 
                     board[selected_square[1]][selected_square[0]] = chosen_piece;
                     board[chosen_coordinates[1]][chosen_coordinates[0]] = 0; 
+                    command = 0x4;
+                    address = (selected_square[0] & 0xF) << 4 | ((7-selected_square[1]) & 0xF);
+                    data = 0;
+                    rf_send_data(address << 24 | command << 16 | data);
                     current_move = !current_move;
                     add_move(chosen_piece, selected_square[0], selected_square[1], list_type);
                     clear_legal_moves();
                     if(checkmate()){
                         if(current_move){
                             LCD_DrawString(0, 0, WHITE, BLACK, "White Wins", 12, false);
+                            led_all_side(false, RED);
+                            led_all_side(true, GREEN);
                         }
                         else{
                             LCD_DrawString(0, 0, WHITE, BLACK, "Black Wins", 12, false);
+                            led_all_side(true, RED);
+                            led_all_side(false, GREEN);
                         }
                     }
                     else if(stalemate()){
@@ -1184,16 +1232,28 @@ void gpio_chess_logic_isr(){
                 //generate for a different piece. 
                 else if(selected_piece != 0){
                     clear_legal_moves();
+                    uint8_t command = 0x3;
+                    uint8_t address = (chosen_coordinates[0] & 0xF) << 4 | ((7-chosen_coordinates[1]) & 0xF);
+                    uint16_t data = 0;
+                    rf_send_data(address << 24 | command << 16 | data);
                     move_generation = true;
                     chosen_piece = board[selected_square[1]][selected_square[0]];
                     chosen_coordinates[0] = selected_square[0];
                     chosen_coordinates[1] = selected_square[1];
+                    command = 0x3;
+                    address = (chosen_coordinates[0] & 0xF) << 4 | ((7-chosen_coordinates[1]) & 0xF);
+                    data = 0b1111100000000000;
+                    rf_send_data(address << 24 | command << 16 | data);
                     legal_move_generator(false);
                 }
                 //else, just clear the legal moves
                 else{
                     move_generation = false;
                     clear_legal_moves();
+                    uint8_t command = 0x3;
+                    uint8_t address = (chosen_coordinates[0] & 0xF) << 4 | ((7-chosen_coordinates[1]) & 0xF);
+                    uint16_t data = 0;
+                    rf_send_data(address << 24 | command << 16 | data);
                 }
 
                 
@@ -1207,10 +1267,12 @@ void gpio_chess_logic_isr(){
 
 
 void init_gpio_chess_logic() {
-    gpio_init(13);
-    gpio_add_raw_irq_handler(13, gpio_chess_logic_isr);
-    gpio_set_irq_enabled(13, GPIO_IRQ_LEVEL_LOW, true);
+    gpio_init(23);
+    gpio_add_raw_irq_handler(23, gpio_chess_logic_isr);
+    gpio_set_irq_enabled(23, GPIO_IRQ_LEVEL_LOW, true);
     irq_set_enabled(IO_IRQ_BANK0, true);
+
+    //gpio_init(21);
 }
 
 void init_adc_freerun() {
@@ -1219,8 +1281,8 @@ void init_adc_freerun() {
     adc_init();
 
     // initialize gpio
-    adc_gpio_init(42);
-    adc_gpio_init(43);
+    adc_gpio_init(28);
+    adc_gpio_init(29);
 
     // start freerunning conversions
     adc_run(true);
@@ -1230,8 +1292,6 @@ void init_adc_freerun() {
 void board_setup(){
     LCD_Setup();
     LCD_Clear(0x0000); // Clear the screen to black
-
-    logic_tx_sm = nec_tx_init(pio, tx_gpio);
 
     rf_send_init_pins();
     rf_send_config();
@@ -1266,11 +1326,13 @@ void board_setup(){
     selected_piece = board[selected_square[1]][selected_square[0]];
     draw_board(board);
     draw_square(board[7][4], 4, 7, true);
-
+    uint8_t command = 0x00FF;
+    uint16_t temp = 0;
+    rf_send_data(0x00 << 24 | command << 16 | temp);
     init_adc_freerun();
 
     for(;;){
-        adc_select_input(2);
+        adc_select_input(3);
         if(adc_hw->result > 4000){ //going down
             if(selected_square[1] < 7){
                 old_coordinates[1] = selected_square[1];
@@ -1296,7 +1358,7 @@ void board_setup(){
             sleep_ms(200);
         }
             //adc_fifo_drain();
-        adc_select_input(3);
+        adc_select_input(2);
         if(adc_hw->result > 4000){
             if(selected_square[0] > 0){
                 old_coordinates[1] = selected_square[1];
@@ -1321,6 +1383,12 @@ void board_setup(){
             }
             sleep_ms(200);
         } 
+        // if(selected_square != old_coordinates) {
+        //     command = 0x3; 
+        //     address = (old_coordinates[0] & 0xF) << 4 | ((7-old_coordinates[1]) & 0xF);
+        //     data = 0;
+        //     rf_send_data(address << 24 | command << 16 | data);  
+        // }
         //adc_fifo_drain();
     }
 }

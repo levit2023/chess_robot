@@ -15,9 +15,9 @@ lcd_dev_t lcddev;
 
 spi_inst_t *SPI = spi0; // Use SPI1 for the LCD
 
-#define CS_NUM  17
-#define DC_NUM 16
-#define RESET_NUM 15
+#define CS_NUM  21
+#define DC_NUM 20
+#define RESET_NUM 16
 
 #define CS_BIT  (1<<CS_NUM)
 #define RESET_BIT (1<<RESET_NUM)
