@@ -42,7 +42,7 @@ uint32_t ramp_steps; // measures the amount of steps during ramp up, to be able 
 
 double current_speed = 0; // current speed (steps/s)
 double min_speed = 200; // lowest speed (steps/s)
-double max_speed = 1500; // highest speed (steps/s)
+double max_speed = 1200; // highest speed (steps/s)
 double decel_speed_initial = 0; // initial speed (steps/s) for decel phase
 double accel = 1000; // acceleration (steps/s^2)
 
