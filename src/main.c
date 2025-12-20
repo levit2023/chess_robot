@@ -32,7 +32,6 @@
 #include <string.h>
 #include <math.h>   
 #include "chess_logic.h"
-#include "ir.h"
 // extern nec_config_t my_setup;
 
 

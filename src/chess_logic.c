@@ -6,7 +6,6 @@
 #include <string.h>
 #include <math.h>   
 #include "pieces.h"
-#include "ir.h"
 #include <math.h>
 #include "rf.h"
 
@@ -49,7 +48,6 @@ int en_pass_x;
 int en_pass_y;
 int logic_tx_sm;
 int logic_rx_sm;
-PIO pio = pio0;
 uint tx_gpio = 27;
 uint rx_gpio = 2;
 
