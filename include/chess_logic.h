@@ -1,5 +1,6 @@
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
+#include "rf.h"
 
 void draw_piece(uint16_t bitmap[], int index, int x_coord, int y_coord);
 void draw_square(uint16_t drawn_piece, int board_x, int board_y, bool selected);
@@ -16,6 +17,7 @@ void legal_move_generator(bool checkmate_assessment);
 void init_spi_lcd();
 bool stalemate();
 bool checkmate();
+void led_all_side(bool side, uint16_t color);
 void gpio_chess_logic_isr();
 void adc_chess_logic_isr();
 void init_gpio_chess_logic();
